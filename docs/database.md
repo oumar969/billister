@@ -1,4 +1,3 @@
-
 # Database (EF Core)
 
 Projektet bruger EF Core + SQLite som standard i udvikling.
@@ -16,8 +15,8 @@ Når du har .NET SDK installeret på maskinen:
 ```powershell
 cd "C:\Users\oamma\OneDrive\Desktop\Ny mappe (2)\billister"
 
-dotnet tool install --global dotnet-ef
-# eller: dotnet tool update --global dotnet-ef
+dotnet tool install --global dotnet-ef --version 7.0.20
+# eller: dotnet tool update --global dotnet-ef --version 7.0.20
 
 dotnet restore
 
