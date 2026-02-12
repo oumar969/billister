@@ -238,6 +238,51 @@ public sealed class ListingsController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("mine")]
+    public async Task<ActionResult<object>> Mine([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    {
+        if (page < 1) page = 1;
+        if (pageSize is < 1 or > 100) pageSize = 20;
+
+        var userId = GetUserId();
+
+        IQueryable<CarListing> q = _db.CarListings
+            .AsNoTracking()
+            .Include(x => x.Images)
+            .Where(x => x.SellerUserId == userId);
+
+        var total = await q.CountAsync(ct);
+
+        var items = await q
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new
+            {
+                x.Id,
+                x.Make,
+                x.Model,
+                x.Variant,
+                x.PriceDkk,
+                x.FuelType,
+                x.Transmission,
+                x.Year,
+                x.MileageKm,
+                x.ElectricRangeKm,
+                x.Latitude,
+                x.Longitude,
+                x.City,
+                x.ViewCount,
+                x.FavoriteCount,
+                x.CreatedAtUtc,
+                images = x.Images.OrderBy(i => i.SortOrder).Select(i => new { i.Url, i.SortOrder, i.Width, i.Height })
+            })
+            .ToListAsync(ct);
+
+        return Ok(new { total, page, pageSize, items });
+    }
+
+    [Authorize]
     [HttpPatch("{id:guid}")]
     public async Task<ActionResult> Update([FromRoute] Guid id, [FromBody] ApiDtos.Listings.UpdateListingRequest req, CancellationToken ct)
     {

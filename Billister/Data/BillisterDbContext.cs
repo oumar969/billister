@@ -13,6 +13,8 @@ public sealed class BillisterDbContext
 
     public DbSet<CarListing> CarListings => Set<CarListing>();
     public DbSet<CarImage> CarImages => Set<CarImage>();
+    public DbSet<VehicleMake> VehicleMakes => Set<VehicleMake>();
+    public DbSet<VehicleModel> VehicleModels => Set<VehicleModel>();
     public DbSet<ListingView> ListingViews => Set<ListingView>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<SavedSearch> SavedSearches => Set<SavedSearch>();
@@ -53,6 +55,25 @@ public sealed class BillisterDbContext
             b.HasKey(x => x.Id);
             b.Property(x => x.Url).HasMaxLength(2048);
             b.HasIndex(x => new { x.ListingId, x.SortOrder });
+        });
+
+        builder.Entity<VehicleMake>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Name).HasMaxLength(120);
+            b.HasIndex(x => x.Name).IsUnique();
+
+            b.HasMany(x => x.Models)
+                .WithOne(x => x.Make)
+                .HasForeignKey(x => x.MakeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<VehicleModel>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Name).HasMaxLength(120);
+            b.HasIndex(x => new { x.MakeId, x.Name }).IsUnique();
         });
 
         builder.Entity<Favorite>(b =>

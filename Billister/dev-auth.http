@@ -1,0 +1,21 @@
+@baseUrl = http://localhost:5072
+@email = demo@billister.local
+@password = Demo1234
+
+### Register (creates user in SQLite)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
