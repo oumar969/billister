@@ -41,11 +41,11 @@ class _ListingsScreenState extends State<ListingsScreen> {
   String? _catalogError;
   List<VehicleMake> _makes = const <VehicleMake>[];
   List<VehicleModel> _models = const <VehicleModel>[];
-  String? _selectedMakeId;
-  String? _selectedModelId;
   String? _activeMakeIdForModels;
   final List<VehicleMake> _selectedMakes = <VehicleMake>[];
   final List<VehicleModel> _selectedModels = <VehicleModel>[];
+  TextEditingController? _makeAutoFieldCtrl;
+  TextEditingController? _modelAutoFieldCtrl;
 
   String? _selectedFuelType;
 
@@ -63,8 +63,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
   bool _updatingRanges = false;
 
   final _qCtrl = TextEditingController();
-  final _makeCtrl = TextEditingController();
-  final _modelCtrl = TextEditingController();
   final _priceMinCtrl = TextEditingController();
   final _priceMaxCtrl = TextEditingController();
 
@@ -275,9 +273,10 @@ class _ListingsScreenState extends State<ListingsScreen> {
       _catalogLoading = true;
       _catalogError = null;
       _models = const <VehicleModel>[];
-      _selectedModelId = null;
       _activeMakeIdForModels = makeId;
-      _modelCtrl.clear();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _modelAutoFieldCtrl?.clear();
     });
 
     try {
@@ -299,8 +298,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
   @override
   void dispose() {
     _qCtrl.dispose();
-    _makeCtrl.dispose();
-    _modelCtrl.dispose();
     _priceMinCtrl.dispose();
     _priceMaxCtrl.dispose();
 
@@ -568,97 +565,93 @@ class _ListingsScreenState extends State<ListingsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Make'),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String?>(
-                        isExpanded: true,
-                        value: _selectedMakeId,
-                        items: [
-                          const DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('Tilføj mærke'),
-                          ),
-                          ..._makes.map(
-                            (m) => DropdownMenuItem<String?>(
-                              value: m.id,
-                              child: Text(m.name),
-                            ),
-                          ),
-                        ],
-                        onChanged: _catalogLoading
-                            ? null
-                            : (value) {
-                                if (value == null) return;
-                                final make = _makes.firstWhere(
-                                  (x) => x.id == value,
-                                  orElse: () =>
-                                      const VehicleMake(id: '', name: ''),
-                                );
-                                if (make.id.isNotEmpty) {
-                                  setState(() {
-                                    if (_selectedMakes.every(
-                                      (x) => x.id != make.id,
-                                    )) {
-                                      _selectedMakes.add(make);
-                                    }
-                                    _selectedMakeId = null;
-                                  });
-
-                                  _loadModelsForMake(make.id);
-                                }
-                              },
-                      ),
-                    ),
+                  child: Autocomplete<VehicleMake>(
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return _makes;
+                      }
+                      final query = textEditingValue.text.toLowerCase();
+                      return _makes.where(
+                        (m) => m.name.toLowerCase().contains(query),
+                      );
+                    },
+                    displayStringForOption: (m) => m.name,
+                    fieldViewBuilder: (
+                      context,
+                      textEditingController,
+                      focusNode,
+                      onFieldSubmitted,
+                    ) {
+                      _makeAutoFieldCtrl = textEditingController;
+                      return TextField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          labelText: 'Mærke',
+                          hintText:
+                              _catalogLoading ? 'Indlæser...' : 'Søg mærke',
+                        ),
+                        enabled: !_catalogLoading,
+                      );
+                    },
+                    onSelected: (VehicleMake make) {
+                      if (_selectedMakes.every((x) => x.id != make.id)) {
+                        setState(() {
+                          _selectedMakes.add(make);
+                        });
+                        _loadModelsForMake(make.id);
+                      }
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _makeAutoFieldCtrl?.clear();
+                      });
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Model'),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String?>(
-                        isExpanded: true,
-                        value: _selectedModelId,
-                        items: [
-                          const DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('Tilføj model'),
-                          ),
-                          ..._models.map(
-                            (m) => DropdownMenuItem<String?>(
-                              value: m.id,
-                              child: Text(m.name),
-                            ),
-                          ),
-                        ],
-                        onChanged:
-                            _activeMakeIdForModels == null || _catalogLoading
-                            ? null
-                            : (value) {
-                                if (value == null) return;
-
-                                final model = _models.firstWhere(
-                                  (x) => x.id == value,
-                                  orElse: () => const VehicleModel(
-                                    id: '',
-                                    makeId: '',
-                                    name: '',
-                                  ),
-                                );
-                                if (model.id.isNotEmpty) {
-                                  setState(() {
-                                    if (_selectedModels.every(
-                                      (x) => x.id != model.id,
-                                    )) {
-                                      _selectedModels.add(model);
-                                    }
-                                    _selectedModelId = null;
-                                  });
-                                }
-                              },
-                      ),
-                    ),
+                  child: Autocomplete<VehicleModel>(
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (_models.isEmpty) {
+                        return const Iterable<VehicleModel>.empty();
+                      }
+                      if (textEditingValue.text.isEmpty) {
+                        return _models;
+                      }
+                      final query = textEditingValue.text.toLowerCase();
+                      return _models.where(
+                        (m) => m.name.toLowerCase().contains(query),
+                      );
+                    },
+                    displayStringForOption: (m) => m.name,
+                    fieldViewBuilder: (
+                      context,
+                      textEditingController,
+                      focusNode,
+                      onFieldSubmitted,
+                    ) {
+                      _modelAutoFieldCtrl = textEditingController;
+                      return TextField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          labelText: 'Model',
+                          hintText: _models.isEmpty
+                              ? 'Vælg først et mærke'
+                              : 'Søg model',
+                        ),
+                        enabled: _models.isNotEmpty && !_catalogLoading,
+                      );
+                    },
+                    onSelected: (VehicleModel model) {
+                      if (_selectedModels.every((x) => x.id != model.id)) {
+                        setState(() {
+                          _selectedModels.add(model);
+                        });
+                      }
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _modelAutoFieldCtrl?.clear();
+                      });
+                    },
                   ),
                 ),
               ],
@@ -681,7 +674,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
                             if (_activeMakeIdForModels == m.id) {
                               _activeMakeIdForModels = null;
                               _models = const <VehicleModel>[];
-                              _selectedModelId = null;
                             }
                           });
                         },
@@ -877,12 +869,16 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       : () {
                           _qCtrl.clear();
                           setState(() {
-                            _selectedMakeId = null;
-                            _selectedModelId = null;
                             _activeMakeIdForModels = null;
                             _models = const <VehicleModel>[];
                             _selectedMakes.clear();
                             _selectedModels.clear();
+                          });
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              _makeAutoFieldCtrl?.clear();
+                              _modelAutoFieldCtrl?.clear();
+                            }
                           });
                           _priceMinCtrl.clear();
                           _priceMaxCtrl.clear();
