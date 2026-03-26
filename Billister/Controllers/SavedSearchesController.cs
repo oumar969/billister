@@ -31,7 +31,7 @@ public sealed class SavedSearchesController : ControllerBase
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.CreatedAtUtc)
             .Take(200)
-            .Select(x => new { x.Id, x.Name, x.CriteriaJson, x.CreatedAtUtc, x.UpdatedAtUtc, x.LastNotifiedAtUtc })
+            .Select(x => new { x.Id, x.Name, x.CriteriaJson, x.NotificationsEnabled, x.CreatedAtUtc, x.UpdatedAtUtc, x.LastNotifiedAtUtc })
             .ToListAsync(ct);
 
         return Ok(new { items });
@@ -51,7 +51,8 @@ public sealed class SavedSearchesController : ControllerBase
         {
             UserId = userId,
             Name = req.Name,
-            CriteriaJson = normalizedJson
+            CriteriaJson = normalizedJson,
+            NotificationsEnabled = req.NotificationsEnabled
         };
 
         _db.SavedSearches.Add(entity);
@@ -72,7 +73,8 @@ public sealed class SavedSearchesController : ControllerBase
         {
             UserId = userId,
             Name = req.Name,
-            CriteriaJson = normalizedJson
+            CriteriaJson = normalizedJson,
+            NotificationsEnabled = req.NotificationsEnabled
         };
 
         _db.SavedSearches.Add(entity);
@@ -88,7 +90,7 @@ public sealed class SavedSearchesController : ControllerBase
         var entity = await _db.SavedSearches.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
         if (entity is null) return NotFound();
 
-        return Ok(new { entity.Id, entity.Name, entity.CriteriaJson, entity.CreatedAtUtc, entity.UpdatedAtUtc, entity.LastNotifiedAtUtc });
+        return Ok(new { entity.Id, entity.Name, entity.CriteriaJson, entity.NotificationsEnabled, entity.CreatedAtUtc, entity.UpdatedAtUtc, entity.LastNotifiedAtUtc });
     }
 
     [HttpPatch("{id:guid}")]
@@ -99,6 +101,7 @@ public sealed class SavedSearchesController : ControllerBase
         if (entity is null) return NotFound();
 
         if (req.Name is not null) entity.Name = req.Name;
+        if (req.NotificationsEnabled is not null) entity.NotificationsEnabled = req.NotificationsEnabled.Value;
         if (req.CriteriaJson is not null)
         {
             if (!ListingFilterCriteriaJson.TryParse(req.CriteriaJson, out _, out var normalizedJson))

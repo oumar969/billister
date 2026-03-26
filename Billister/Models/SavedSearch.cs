@@ -15,4 +15,6 @@ public sealed class SavedSearch
     public DateTime? UpdatedAtUtc { get; set; }
 
     public DateTime? LastNotifiedAtUtc { get; set; }
+
+    public bool NotificationsEnabled { get; set; } = true;
 }

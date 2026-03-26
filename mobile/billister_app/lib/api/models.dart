@@ -287,6 +287,44 @@ class FavoriteListing {
   }
 }
 
+class SavedSearch {
+  final String id;
+  final String name;
+  final String criteriaJson;
+  final bool notificationsEnabled;
+  final DateTime createdAtUtc;
+  final DateTime? updatedAtUtc;
+  final DateTime? lastNotifiedAtUtc;
+
+  const SavedSearch({
+    required this.id,
+    required this.name,
+    required this.criteriaJson,
+    required this.notificationsEnabled,
+    required this.createdAtUtc,
+    this.updatedAtUtc,
+    this.lastNotifiedAtUtc,
+  });
+
+  factory SavedSearch.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return SavedSearch(
+      id: json['id'] as String,
+      name: (json['name'] as String?) ?? '',
+      criteriaJson: (json['criteriaJson'] as String?) ?? '{}',
+      notificationsEnabled: (json['notificationsEnabled'] as bool?) ?? true,
+      createdAtUtc: tryDate('createdAtUtc') ?? DateTime.now(),
+      updatedAtUtc: tryDate('updatedAtUtc'),
+      lastNotifiedAtUtc: tryDate('lastNotifiedAtUtc'),
+    );
+  }
+}
+
 class VehicleMake {
   final String id;
   final String name;

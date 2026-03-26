@@ -81,10 +81,10 @@ public static class ApiDtos
 
     public static class SavedSearches
     {
-        public sealed record CreateSavedSearchRequest(string Name, string CriteriaJson);
-        public sealed record UpdateSavedSearchRequest(string? Name, string? CriteriaJson);
+        public sealed record CreateSavedSearchRequest(string Name, string CriteriaJson, bool NotificationsEnabled = true);
+        public sealed record UpdateSavedSearchRequest(string? Name, string? CriteriaJson, bool? NotificationsEnabled);
 
-        public sealed record CreateSavedSearchFromCriteriaRequest(string Name, ListingFilterCriteria Criteria);
+        public sealed record CreateSavedSearchFromCriteriaRequest(string Name, ListingFilterCriteria Criteria, bool NotificationsEnabled = true);
     }
 
     public static class DeviceTokens

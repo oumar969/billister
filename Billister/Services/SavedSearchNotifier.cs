@@ -36,6 +36,11 @@ public sealed class SavedSearchNotifier : ISavedSearchNotifier
         var any = false;
         foreach (var saved in savedSearches)
         {
+            if (!saved.NotificationsEnabled)
+            {
+                continue;
+            }
+
             if (!ListingFilterCriteriaJson.TryParse(saved.CriteriaJson, out var criteria, out _))
             {
                 continue;

@@ -4,6 +4,7 @@ import '../api/api_client.dart';
 import 'favorites_screen.dart';
 import 'listings_screen.dart';
 import 'menu_screen.dart';
+import 'saved_searches_screen.dart';
 
 class MainTabsScreen extends StatefulWidget {
   const MainTabsScreen({super.key, required this.api});
@@ -37,7 +38,7 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
         title: 'Søg',
         showFilters: true,
       ),
-      const _PlaceholderTab(title: 'Søgeagent'),
+      SavedSearchesScreen(api: widget.api, onAuthChanged: _onAuthChanged),
       MenuScreen(api: widget.api, onAuthChanged: _onAuthChanged),
     ];
 
@@ -67,20 +68,6 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu'),
         ],
       ),
-    );
-  }
-}
-
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const Center(child: Text('Kommer snart')),
     );
   }
 }

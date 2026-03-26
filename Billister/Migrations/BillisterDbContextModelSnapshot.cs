@@ -401,6 +401,11 @@ namespace Billister.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("NotificationsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("TEXT");
 
