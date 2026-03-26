@@ -4,6 +4,7 @@ import '../api/api_client.dart';
 import 'favorites_screen.dart';
 import 'listings_screen.dart';
 import 'menu_screen.dart';
+import 'nearby_map_screen.dart';
 
 class MainTabsScreen extends StatefulWidget {
   const MainTabsScreen({super.key, required this.api});
@@ -37,7 +38,7 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
         title: 'Søg',
         showFilters: true,
       ),
-      const _PlaceholderTab(title: 'Søgeagent'),
+      NearbyMapScreen(api: widget.api),
       MenuScreen(api: widget.api, onAuthChanged: _onAuthChanged),
     ];
 
@@ -60,27 +61,13 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
           ),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Søg'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none),
-            activeIcon: Icon(Icons.notifications),
-            label: 'Søgeagent',
+            icon: Icon(Icons.map_outlined),
+            activeIcon: Icon(Icons.map),
+            label: 'Kort',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu'),
         ],
       ),
-    );
-  }
-}
-
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const Center(child: Text('Kommer snart')),
     );
   }
 }

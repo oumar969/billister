@@ -369,4 +369,35 @@ class ApiClient {
   void dispose() {
     _http.close();
   }
+
+  Future<List<NearbyListing>> fetchNearbyListings({
+    required double lat,
+    required double lng,
+    double radiusKm = 25,
+  }) async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/listings/nearby', {
+          'lat': lat.toString(),
+          'lng': lng.toString(),
+          'radiusKm': radiusKm.toString(),
+        }),
+        headers: _jsonHeaders(),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final items = json['items'] as List<dynamic>?;
+      if (items == null) return const <NearbyListing>[];
+      return items
+          .map((e) => NearbyListing.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false);
+    }
+
+    throw ApiException(
+      'Fetch nearby listings failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
 }

@@ -320,3 +320,34 @@ class VehicleModel {
     );
   }
 }
+
+class NearbyListing {
+  final String id;
+  final String make;
+  final String model;
+  final num priceDkk;
+  final double latitude;
+  final double longitude;
+
+  const NearbyListing({
+    required this.id,
+    required this.make,
+    required this.model,
+    required this.priceDkk,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  factory NearbyListing.fromJson(Map<String, dynamic> json) {
+    return NearbyListing(
+      id: json['id'] as String,
+      make: (json['make'] as String?) ?? '',
+      model: (json['model'] as String?) ?? '',
+      priceDkk: (json['priceDkk'] as num?) ?? 0,
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+    );
+  }
+
+  String get title => '$make $model';
+}
