@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../widgets/listing_images_picker.dart';
 
 class SellCarScreen extends StatefulWidget {
   const SellCarScreen({super.key, required this.api});
@@ -47,6 +49,9 @@ class _SellCarScreenState extends State<SellCarScreen> {
 
   bool _submitting = false;
   String? _error;
+  String? _uploadStatus;
+
+  List<XFile> _selectedImages = [];
 
   @override
   void initState() {
@@ -152,9 +157,27 @@ class _SellCarScreenState extends State<SellCarScreen> {
     setState(() {
       _submitting = true;
       _error = null;
+      _uploadStatus = null;
     });
 
     try {
+      // Upload images first (if any) and collect their URLs.
+      final imageCreates = <ListingImageCreate>[];
+      for (var i = 0; i < _selectedImages.length; i++) {
+        setState(() {
+          _uploadStatus =
+              'Uploader billede ${i + 1} af ${_selectedImages.length}…';
+        });
+        final url = await widget.api.uploadImage(_selectedImages[i]);
+        imageCreates.add(ListingImageCreate(url: url, sortOrder: i));
+      }
+
+      if (imageCreates.isNotEmpty) {
+        setState(() {
+          _uploadStatus = 'Opretter annonce…';
+        });
+      }
+
       await widget.api.createListing(
         make: make.name,
         model: model.name,
@@ -166,6 +189,7 @@ class _SellCarScreenState extends State<SellCarScreen> {
         city: _cityCtrl.text,
         title: _titleCtrl.text,
         description: _descCtrl.text,
+        images: imageCreates.isEmpty ? null : imageCreates,
       );
 
       if (!mounted) return;
@@ -181,6 +205,7 @@ class _SellCarScreenState extends State<SellCarScreen> {
       if (mounted) {
         setState(() {
           _submitting = false;
+          _uploadStatus = null;
         });
       }
     }
@@ -370,6 +395,26 @@ class _SellCarScreenState extends State<SellCarScreen> {
                   maxLines: 4,
                 ),
                 const SizedBox(height: 12),
+                ListingImagesPicker(
+                  images: _selectedImages,
+                  onChanged: (imgs) => setState(() => _selectedImages = imgs),
+                  enabled: !_submitting,
+                ),
+                const SizedBox(height: 12),
+                if (_uploadStatus != null) ...[
+                  Row(
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_uploadStatus!)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 if (_error != null) ...[
                   Text(
                     _error!,
