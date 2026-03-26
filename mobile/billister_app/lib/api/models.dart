@@ -320,3 +320,23 @@ class VehicleModel {
     );
   }
 }
+
+class UserProfile {
+  final String email;
+  final String? displayName;
+  final String? phoneNumber;
+
+  const UserProfile({
+    required this.email,
+    this.displayName,
+    this.phoneNumber,
+  });
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      email: (json['email'] as String?) ?? '',
+      displayName: json['displayName'] as String?,
+      phoneNumber: json['phoneNumber'] as String?,
+    );
+  }
+}

@@ -366,6 +366,106 @@ class ApiClient {
     );
   }
 
+  Future<UserProfile> fetchProfile() async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/profile'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return UserProfile.fromJson(json);
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Fetch profile failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<UserProfile> updateProfile({
+    String? displayName,
+    String? phoneNumber,
+  }) async {
+    final res = await _send(
+      () => _http.put(
+        _uri('/api/profile'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({
+          'displayName': displayName,
+          'phoneNumber': phoneNumber,
+        }),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final newToken = json['token'] as String?;
+      if (newToken != null && newToken.isNotEmpty) {
+        token = newToken;
+      }
+      return UserProfile.fromJson(json);
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    if (res.statusCode == 400) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>?;
+      final errors = (json?['errors'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .join('\n');
+      throw ApiException(errors ?? 'Opdatering fejlede', statusCode: 400);
+    }
+
+    throw ApiException(
+      'Update profile failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/profile/change-password'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        }),
+      ),
+    );
+
+    if (res.statusCode == 204) return;
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    if (res.statusCode == 400) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>?;
+      final errors = (json?['errors'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .join('\n');
+      throw ApiException(errors ?? 'Adgangskode kunne ikke ændres', statusCode: 400);
+    }
+
+    throw ApiException(
+      'Change password failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
   void dispose() {
     _http.close();
   }

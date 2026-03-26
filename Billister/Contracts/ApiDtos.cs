@@ -96,4 +96,12 @@ public static class ApiDtos
     {
         public sealed record StartChatRequest(Guid ListingId);
     }
+
+    public static class Profile
+    {
+        public sealed record GetProfileResponse(string Email, string? DisplayName, string? PhoneNumber);
+        public sealed record UpdateProfileResponse(string Email, string? DisplayName, string? PhoneNumber, string Token);
+        public sealed record UpdateProfileRequest(string? DisplayName, string? PhoneNumber);
+        public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+    }
 }

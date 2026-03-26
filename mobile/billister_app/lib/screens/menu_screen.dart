@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import 'login_screen.dart';
 import 'my_listings_screen.dart';
+import 'profile_screen.dart';
 import 'sell_car_screen.dart';
 
 class MenuScreen extends StatelessWidget {
@@ -187,7 +188,19 @@ class MenuScreen extends StatelessWidget {
               context,
               icon: Icons.settings_outlined,
               title: 'Kontoindstillinger',
-              onTap: () => _comingSoon(context),
+              onTap: () async {
+                final ok = await _ensureLoggedIn(context);
+                if (!ok || !context.mounted) return;
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ProfileScreen(
+                      api: api,
+                      onAuthChanged: onAuthChanged,
+                    ),
+                  ),
+                );
+                onAuthChanged?.call();
+              },
             ),
             _menuTile(
               context,
