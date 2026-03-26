@@ -11,6 +11,7 @@ public sealed class BillisterDbContext
     {
     }
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<CarListing> CarListings => Set<CarListing>();
     public DbSet<CarImage> CarImages => Set<CarImage>();
     public DbSet<VehicleMake> VehicleMakes => Set<VehicleMake>();
@@ -114,6 +115,17 @@ public sealed class BillisterDbContext
         {
             b.HasKey(x => x.Id);
             b.HasIndex(x => new { x.ListingId, x.CreatedAtUtc });
+        });
+
+        builder.Entity<RefreshToken>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.HasIndex(x => x.Token).IsUnique();
+            b.HasIndex(x => new { x.UserId, x.RevokedAtUtc });
+            b.Property(x => x.Token).HasMaxLength(512);
+            b.Ignore(x => x.IsRevoked);
+            b.Ignore(x => x.IsExpired);
+            b.Ignore(x => x.IsActive);
         });
     }
 }

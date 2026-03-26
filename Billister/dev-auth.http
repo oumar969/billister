@@ -1,8 +1,12 @@
 @baseUrl = http://localhost:5072
 @email = demo@billister.local
 @password = Demo1234
+# Paste the refresh token returned from login/register here:
+@refreshToken = PASTE_REFRESH_TOKEN_HERE
+# Paste the access token (Bearer token) here:
+@accessToken = PASTE_ACCESS_TOKEN_HERE
 
-### Register (creates user in SQLite)
+### Register (creates user in SQLite, returns accessToken + refreshToken)
 POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
@@ -11,11 +15,66 @@ Content-Type: application/json
   "password": "{{password}}"
 }
 
-### Login
+### Login (returns accessToken + refreshToken)
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
   "email": "{{email}}",
   "password": "{{password}}"
+}
+
+### Refresh access token (rotates refresh token)
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Logout this device (revoke single refresh token)
+POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Logout everywhere (requires valid access token)
+POST {{baseUrl}}/api/auth/logout-all
+Authorization: Bearer {{accessToken}}
+
+### Forgot password (sends reset email; always 204)
+POST {{baseUrl}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### Reset password (use token from the console/email log)
+POST {{baseUrl}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "token": "PASTE_RESET_TOKEN_HERE",
+  "newPassword": "NewPass456"
+}
+
+### Resend email verification
+POST {{baseUrl}}/api/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### Verify email (use userId + token from the console/email log)
+POST {{baseUrl}}/api/auth/verify-email
+Content-Type: application/json
+
+{
+  "userId": "PASTE_USER_ID_HERE",
+  "token": "PASTE_EMAIL_TOKEN_HERE"
 }

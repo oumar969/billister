@@ -25,7 +25,11 @@ class ApiClient {
 
   static const Duration _requestTimeout = Duration(seconds: 8);
 
+  /// Short-lived JWT access token (15 min).
   String? token;
+
+  /// Long-lived refresh token (90 days).
+  String? refreshToken;
 
   ApiClient({required this.baseUrl, http.Client? httpClient})
     : _http = httpClient ?? http.Client();
@@ -70,7 +74,11 @@ class ApiClient {
     return headers;
   }
 
-  Future<String> login({
+  // ---------------------------------------------------------------------------
+  // Auth
+  // ---------------------------------------------------------------------------
+
+  Future<void> login({
     required String email,
     required String password,
   }) async {
@@ -83,27 +91,181 @@ class ApiClient {
     );
 
     if (res.statusCode == 200) {
-      final json = jsonDecode(res.body) as Map<String, dynamic>;
-      final t = json['token'] as String?;
-      if (t == null || t.isEmpty) {
-        throw const ApiException('Login response missing token');
-      }
-      token = t;
-      return t;
+      _applyAuthResponse(res.body);
+      return;
     }
 
     if (res.statusCode == 401) {
       throw const ApiException(
-        'Unauthorized: wrong email/password',
+        'Forkert email eller kodeord.',
         statusCode: 401,
       );
     }
 
     throw ApiException(
-      'Login failed (${res.statusCode})',
+      'Login mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
+
+  Future<void> register({
+    required String email,
+    required String password,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/register'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({'email': email, 'password': password}),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      _applyAuthResponse(res.body);
+      return;
+    }
+
+    if (res.statusCode == 400) {
+      final body = jsonDecode(res.body) as Map<String, dynamic>?;
+      final errors = body?['errors'] as List<dynamic>?;
+      final msg =
+          errors?.map((e) => e.toString()).join(', ') ?? 'Registrering mislykkedes';
+      throw ApiException(msg, statusCode: 400);
+    }
+
+    throw ApiException(
+      'Registrering mislykkedes (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  /// Exchanges the stored refresh token for a new access + refresh token pair.
+  /// Returns true if successful, false if the refresh token is invalid/expired.
+  Future<bool> tryRefreshAccessToken() async {
+    final rt = refreshToken;
+    if (rt == null || rt.isEmpty) return false;
+
+    try {
+      final res = await _send(
+        () => _http.post(
+          _uri('/api/auth/refresh'),
+          headers: _jsonHeaders(),
+          body: jsonEncode({'refreshToken': rt}),
+        ),
+      );
+
+      if (res.statusCode == 200) {
+        _applyAuthResponse(res.body);
+        return true;
+      }
+    } catch (_) {
+      // Network failure – keep existing tokens
+    }
+
+    return false;
+  }
+
+  /// Logs out on this device by revoking the current refresh token.
+  Future<void> logout() async {
+    final rt = refreshToken;
+    token = null;
+    refreshToken = null;
+
+    if (rt != null && rt.isNotEmpty) {
+      try {
+        await _send(
+          () => _http.post(
+            _uri('/api/auth/logout'),
+            headers: _jsonHeaders(),
+            body: jsonEncode({'refreshToken': rt}),
+          ),
+        );
+      } catch (_) {
+        // Best-effort: tokens are already cleared locally
+      }
+    }
+  }
+
+  /// Logs out on ALL devices by revoking every active refresh token.
+  /// Requires a valid access token.
+  Future<void> logoutAll() async {
+    token = null;
+    refreshToken = null;
+
+    try {
+      await _send(
+        () => _http.post(
+          _uri('/api/auth/logout-all'),
+          headers: _jsonHeaders(includeAuth: true),
+        ),
+      );
+    } catch (_) {
+      // Best-effort: tokens are already cleared locally
+    }
+  }
+
+  Future<void> forgotPassword({required String email}) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/forgot-password'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({'email': email}),
+      ),
+    );
+
+    if (res.statusCode == 204) return;
+
+    throw ApiException(
+      'Anmodning om nulstilling mislykkedes (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/reset-password'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({
+          'email': email,
+          'token': resetToken,
+          'newPassword': newPassword,
+        }),
+      ),
+    );
+
+    if (res.statusCode == 200) return;
+
+    if (res.statusCode == 400) {
+      final body = jsonDecode(res.body) as Map<String, dynamic>?;
+      final errors = body?['errors'] as List<dynamic>?;
+      final msg = errors?.map((e) => e.toString()).join(', ') ??
+          (body?['error']?.toString() ?? 'Nulstilling mislykkedes');
+      throw ApiException(msg, statusCode: 400);
+    }
+
+    throw ApiException(
+      'Nulstilling mislykkedes (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  void _applyAuthResponse(String body) {
+    final json = jsonDecode(body) as Map<String, dynamic>;
+    final t = json['token'] as String?;
+    final rt = json['refreshToken'] as String?;
+    if (t == null || t.isEmpty) throw const ApiException('Auth svar mangler token');
+    token = t;
+    if (rt != null && rt.isNotEmpty) refreshToken = rt;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Listings
+  // ---------------------------------------------------------------------------
 
   Future<ListingsPage> fetchListings({int page = 1, int pageSize = 20}) async {
     final res = await _send(
@@ -122,7 +284,7 @@ class ApiClient {
     }
 
     throw ApiException(
-      'Fetch listings failed (${res.statusCode})',
+      'Hentning af annoncer mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
@@ -150,7 +312,7 @@ class ApiClient {
     }
 
     throw ApiException(
-      'Search listings failed (${res.statusCode})',
+      'Søgning mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
@@ -166,11 +328,11 @@ class ApiClient {
     }
 
     if (res.statusCode == 404) {
-      throw const ApiException('Listing not found', statusCode: 404);
+      throw const ApiException('Annonce ikke fundet', statusCode: 404);
     }
 
     throw ApiException(
-      'Fetch listing failed (${res.statusCode})',
+      'Hentning af annonce mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
@@ -198,7 +360,7 @@ class ApiClient {
     }
 
     throw ApiException(
-      'Fetch favorites failed (${res.statusCode})',
+      'Hentning af favoritter mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
@@ -213,14 +375,14 @@ class ApiClient {
 
     if (res.statusCode == 204) return;
     if (res.statusCode == 404) {
-      throw const ApiException('Listing not found', statusCode: 404);
+      throw const ApiException('Annonce ikke fundet', statusCode: 404);
     }
     if (res.statusCode == 401) {
       throw const ApiException('Unauthorized', statusCode: 401);
     }
 
     throw ApiException(
-      'Add favorite failed (${res.statusCode})',
+      'Tilføjelse af favorit mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
@@ -239,7 +401,7 @@ class ApiClient {
     }
 
     throw ApiException(
-      'Remove favorite failed (${res.statusCode})',
+      'Fjernelse af favorit mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
@@ -257,7 +419,7 @@ class ApiClient {
     }
 
     throw ApiException(
-      'Fetch vehicle makes failed (${res.statusCode})',
+      'Hentning af bilmærker mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
@@ -278,7 +440,7 @@ class ApiClient {
     }
 
     throw ApiException(
-      'Fetch vehicle models failed (${res.statusCode})',
+      'Hentning af bilmodeller mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
@@ -307,7 +469,7 @@ class ApiClient {
     }
 
     throw ApiException(
-      'Fetch my listings failed (${res.statusCode})',
+      'Hentning af mine annoncer mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }
@@ -351,7 +513,7 @@ class ApiClient {
       final json = jsonDecode(res.body) as Map<String, dynamic>;
       final id = json['id'] as String?;
       if (id == null || id.isEmpty) {
-        throw const ApiException('Create listing response missing id');
+        throw const ApiException('Opret annonce svar mangler id');
       }
       return id;
     }
@@ -361,7 +523,7 @@ class ApiClient {
     }
 
     throw ApiException(
-      'Create listing failed (${res.statusCode})',
+      'Oprettelse af annonce mislykkedes (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }

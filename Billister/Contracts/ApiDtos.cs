@@ -6,7 +6,13 @@ public static class ApiDtos
     {
         public sealed record RegisterRequest(string Email, string Password);
         public sealed record LoginRequest(string Email, string Password);
-        public sealed record AuthResponse(string Token);
+        public sealed record AuthResponse(string Token, string RefreshToken, int ExpiresIn);
+        public sealed record RefreshRequest(string RefreshToken);
+        public sealed record LogoutRequest(string RefreshToken);
+        public sealed record ForgotPasswordRequest(string Email);
+        public sealed record ResetPasswordRequest(string Email, string Token, string NewPassword);
+        public sealed record VerifyEmailRequest(string UserId, string Token);
+        public sealed record ResendVerificationRequest(string Email);
     }
 
     public static class Listings

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final ApiClient api;
@@ -58,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: const Text('Log ind')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -72,23 +73,35 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: const InputDecoration(labelText: 'Email'),
                 validator: (v) {
                   final value = (v ?? '').trim();
-                  if (value.isEmpty) return 'Email is required';
-                  if (!value.contains('@')) return 'Invalid email';
+                  if (value.isEmpty) return 'Email er påkrævet';
+                  if (!value.contains('@')) return 'Ugyldig email';
                   return null;
                 },
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _pwCtrl,
-                decoration: const InputDecoration(labelText: 'Password'),
+                decoration: const InputDecoration(labelText: 'Kodeord'),
                 obscureText: true,
                 validator: (v) {
                   final value = v ?? '';
-                  if (value.isEmpty) return 'Password is required';
+                  if (value.isEmpty) return 'Kodeord er påkrævet';
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ForgotPasswordScreen(api: widget.api),
+                      ),
+                    );
+                  },
+                  child: const Text('Glemt kodeord?'),
+                ),
+              ),
               if (_error != null) ...[
                 Text(
                   _error!,
@@ -98,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
               FilledButton(
                 onPressed: _isSubmitting ? null : _submit,
-                child: Text(_isSubmitting ? 'Logging in…' : 'Login'),
+                child: Text(_isSubmitting ? 'Logger ind…' : 'Log ind'),
               ),
             ],
           ),

@@ -43,12 +43,45 @@ class MenuScreen extends StatelessWidget {
   }
 
   Future<void> _logout(BuildContext context) async {
-    api.token = null;
+    await api.logout();
     onAuthChanged?.call();
 
+    if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Logget ud')));
+  }
+
+  Future<void> _logoutAll(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log ud overalt'),
+        content: const Text(
+          'Dette logger dig ud på alle enheder. Fortsæt?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuller'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Log ud overalt'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    await api.logoutAll();
+    onAuthChanged?.call();
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Logget ud på alle enheder')));
   }
 
   void _comingSoon(BuildContext context) {
@@ -195,6 +228,18 @@ class MenuScreen extends StatelessWidget {
               title: 'Log ud',
               onTap: loggedIn
                   ? () => _logout(context)
+                  : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Du er ikke logget ind')),
+                      );
+                    },
+            ),
+            _menuTile(
+              context,
+              icon: Icons.logout,
+              title: 'Log ud overalt',
+              onTap: loggedIn
+                  ? () => _logoutAll(context)
                   : () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Du er ikke logget ind')),

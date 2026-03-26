@@ -30,10 +30,14 @@ builder.Services
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireUppercase = true;
         options.Password.RequireLowercase = true;
+
+        // Shorten password reset token lifetime to 1 hour
+        options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultProvider;
     })
     .AddRoles<ApplicationRole>()
     .AddEntityFrameworkStores<BillisterDbContext>()
-    .AddSignInManager<SignInManager<ApplicationUser>>();
+    .AddSignInManager<SignInManager<ApplicationUser>>()
+    .AddDefaultTokenProviders();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"];
@@ -64,6 +68,7 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAiDescriptionService, AiDescriptionService>();
 builder.Services.AddScoped<IMotorregisterService, MotorregisterService>();
 builder.Services.AddScoped<ISavedSearchNotifier, SavedSearchNotifier>();
+builder.Services.AddScoped<IEmailService, ConsoleEmailService>();
 
 var app = builder.Build();
 
