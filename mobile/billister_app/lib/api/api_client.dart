@@ -105,6 +105,60 @@ class ApiClient {
     );
   }
 
+  Future<String> register({
+    required String email,
+    required String password,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/register'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({'email': email, 'password': password}),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final t = json['token'] as String?;
+      if (t == null || t.isEmpty) {
+        throw const ApiException('Register response missing token');
+      }
+      token = t;
+      return t;
+    }
+
+    if (res.statusCode == 400) {
+      String? detail;
+      try {
+        final json = jsonDecode(res.body);
+        if (json is Map) {
+          final errors = json['errors'];
+          if (errors is Map) {
+            final msgs = errors.values
+                .expand(
+                  (v) => v is List
+                      ? v
+                      : (v is String ? [v] : const <String>[]),
+                )
+                .whereType<String>()
+                .toList();
+            if (msgs.isNotEmpty) detail = msgs.first;
+          }
+          detail ??= json['title'] as String?;
+        }
+      } catch (_) {}
+      throw ApiException(
+        detail ?? 'Registrering mislykkedes',
+        statusCode: 400,
+      );
+    }
+
+    throw ApiException(
+      'Register failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
   Future<ListingsPage> fetchListings({int page = 1, int pageSize = 20}) async {
     final res = await _send(
       () => _http.get(

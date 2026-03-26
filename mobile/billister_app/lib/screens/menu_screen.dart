@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import 'login_screen.dart';
 import 'my_listings_screen.dart';
+import 'register_screen.dart';
 import 'sell_car_screen.dart';
 
 class MenuScreen extends StatelessWidget {
@@ -40,6 +41,45 @@ class MenuScreen extends StatelessWidget {
       }
     }
     return null;
+  }
+
+  Future<void> _showAuthSheet(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.login),
+              title: const Text('Log ind'),
+              onTap: () => Navigator.of(ctx).pop('login'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_add_outlined),
+              title: const Text('Opret konto'),
+              onTap: () => Navigator.of(ctx).pop('register'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (choice == null || !context.mounted) return;
+
+    bool? ok;
+    if (choice == 'login') {
+      ok = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => LoginScreen(api: api)),
+      );
+    } else if (choice == 'register') {
+      ok = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => RegisterScreen(api: api)),
+      );
+    }
+
+    if (ok == true) onAuthChanged?.call();
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -189,18 +229,20 @@ class MenuScreen extends StatelessWidget {
               title: 'Kontoindstillinger',
               onTap: () => _comingSoon(context),
             ),
-            _menuTile(
-              context,
-              icon: Icons.lock_outline,
-              title: 'Log ud',
-              onTap: loggedIn
-                  ? () => _logout(context)
-                  : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Du er ikke logget ind')),
-                      );
-                    },
-            ),
+            if (loggedIn)
+              _menuTile(
+                context,
+                icon: Icons.lock_outline,
+                title: 'Log ud',
+                onTap: () => _logout(context),
+              )
+            else
+              _menuTile(
+                context,
+                icon: Icons.login,
+                title: 'Log ind / Opret konto',
+                onTap: () => _showAuthSheet(context),
+              ),
             const Divider(height: 1),
             _menuTile(
               context,

@@ -6,9 +6,16 @@ import 'listings_screen.dart';
 import 'menu_screen.dart';
 
 class MainTabsScreen extends StatefulWidget {
-  const MainTabsScreen({super.key, required this.api});
+  const MainTabsScreen({
+    super.key,
+    required this.api,
+    this.onAuthChanged,
+  });
 
   final ApiClient api;
+
+  /// Called when authentication state changes so the parent can persist the token.
+  final VoidCallback? onAuthChanged;
 
   @override
   State<MainTabsScreen> createState() => _MainTabsScreenState();
@@ -18,6 +25,7 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
   int _index = 0;
 
   void _onAuthChanged() {
+    widget.onAuthChanged?.call();
     if (mounted) setState(() {});
   }
 
@@ -30,7 +38,7 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
         title: 'Hjem',
         showFilters: false,
       ),
-      FavoritesScreen(api: widget.api),
+      FavoritesScreen(api: widget.api, onAuthChanged: _onAuthChanged),
       ListingsScreen(
         api: widget.api,
         onAuthChanged: _onAuthChanged,

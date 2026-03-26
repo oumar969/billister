@@ -3,11 +3,18 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
 import 'listing_details_screen.dart';
+import 'login_screen.dart';
+import 'register_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
-  const FavoritesScreen({super.key, required this.api});
+  const FavoritesScreen({
+    super.key,
+    required this.api,
+    this.onAuthChanged,
+  });
 
   final ApiClient api;
+  final VoidCallback? onAuthChanged;
 
   @override
   State<FavoritesScreen> createState() => _FavoritesScreenState();
@@ -67,7 +74,63 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     if (token == null || token.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Favoritter')),
-        body: const Center(child: Text('Login for at se favoritter')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.favorite_border,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Log ind for at se dine favoritter',
+                  style: Theme.of(context).textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: () async {
+                    final ok = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute(
+                        builder: (_) => LoginScreen(api: widget.api),
+                      ),
+                    );
+                    if (ok == true && mounted) {
+                      widget.onAuthChanged?.call();
+                      await _load();
+                    }
+                  },
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(200, 44),
+                  ),
+                  child: const Text('Log ind'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () async {
+                    final ok = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute(
+                        builder: (_) => RegisterScreen(api: widget.api),
+                      ),
+                    );
+                    if (ok == true && mounted) {
+                      widget.onAuthChanged?.call();
+                      await _load();
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(200, 44),
+                  ),
+                  child: const Text('Opret konto'),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
