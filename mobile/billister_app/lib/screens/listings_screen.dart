@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
@@ -25,7 +26,12 @@ class ListingsScreen extends StatefulWidget {
 }
 
 class _ListingsScreenState extends State<ListingsScreen> {
-  ListingsPage? _page;
+  List<ListingSummary> _items = <ListingSummary>[];
+  int _totalItems = 0;
+  int _currentPage = 1;
+  bool _hasMore = false;
+  bool _loadingMore = false;
+  ListingFilterCriteria? _lastCriteria;
   String? _error;
   bool _loading = false;
   Set<String> _favoriteIds = <String>{};
@@ -63,6 +69,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   bool _updatingRanges = false;
 
   final _qCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
   final _makeCtrl = TextEditingController();
   final _modelCtrl = TextEditingController();
   final _priceMinCtrl = TextEditingController();
@@ -299,6 +306,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   @override
   void dispose() {
     _qCtrl.dispose();
+    _scrollCtrl.dispose();
     _makeCtrl.dispose();
     _modelCtrl.dispose();
     _priceMinCtrl.dispose();
@@ -317,10 +325,15 @@ class _ListingsScreenState extends State<ListingsScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _items = <ListingSummary>[];
+      _totalItems = 0;
+      _currentPage = 1;
+      _hasMore = false;
     });
 
     try {
       final criteria = _criteria;
+      _lastCriteria = criteria;
       final page = criteria.isEmpty
           ? await widget.api.fetchListings(page: 1, pageSize: 20)
           : await widget.api.searchListings(
@@ -343,7 +356,10 @@ class _ListingsScreenState extends State<ListingsScreen> {
       }
 
       setState(() {
-        _page = page;
+        _items = page.items;
+        _totalItems = page.total;
+        _currentPage = 1;
+        _hasMore = page.items.length + 0 < page.total;
         _favoriteIds = favoriteIds;
       });
     } catch (e) {
@@ -353,6 +369,39 @@ class _ListingsScreenState extends State<ListingsScreen> {
     } finally {
       setState(() {
         _loading = false;
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore || _loading) return;
+
+    setState(() {
+      _loadingMore = true;
+    });
+
+    final nextPage = _currentPage + 1;
+    final criteria = _lastCriteria ?? const ListingFilterCriteria();
+
+    try {
+      final page = criteria.isEmpty
+          ? await widget.api.fetchListings(page: nextPage, pageSize: 20)
+          : await widget.api.searchListings(
+              criteria: criteria,
+              page: nextPage,
+              pageSize: 20,
+            );
+
+      setState(() {
+        _items = <ListingSummary>[..._items, ...page.items];
+        _currentPage = nextPage;
+        _hasMore = _items.length < _totalItems;
+      });
+    } catch (_) {
+      // Silently ignore load-more errors; user can scroll back to retry.
+    } finally {
+      setState(() {
+        _loadingMore = false;
       });
     }
   }
@@ -431,119 +480,158 @@ class _ListingsScreenState extends State<ListingsScreen> {
           ],
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(12),
-          children: [
-            if (widget.showFilters) ...[
-              _filtersCard(context),
-              const SizedBox(height: 12),
-            ],
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      _error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollEndNotification &&
+              notification.metrics.extentAfter < 200) {
+            _loadMore();
+          }
+          return false;
+        },
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            controller: _scrollCtrl,
+            padding: const EdgeInsets.all(12),
+            children: [
+              if (widget.showFilters) ...[
+                _filtersCard(context),
+                const SizedBox(height: 12),
+              ],
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        _error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: _load,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              )
-            else if (_page == null || _page!.items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('No listings yet')),
-              )
-            else
-              ..._page!.items.map(
-                (item) => Card(
-                  child: ListTile(
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: SizedBox(
-                        width: 64,
-                        height: 64,
-                        child: item.images.isEmpty
-                            ? Container(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
-                                child: Icon(
-                                  Icons.directions_car,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              )
-                            : Image.network(
-                                item.images.first.url,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: _load,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              else if (_items.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: Text('No listings yet')),
+                )
+              else ...[
+                ..._items.map(
+                  (item) => Card(
+                    child: ListTile(
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          width: 64,
+                          height: 64,
+                          child: item.images.isEmpty
+                              ? Container(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                  child: Icon(
+                                    Icons.directions_car,
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                    child: Icon(
-                                      Icons.directions_car,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                                  );
-                                },
-                              ),
-                      ),
-                    ),
-                    title: Text(item.title),
-                    subtitle: Text(_subtitle(item)),
-                    trailing: loggedIn
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('${item.priceDkk.toString()} kr'),
-                              IconButton(
-                                tooltip: _favoriteIds.contains(item.id)
-                                    ? 'Fjern favorit'
-                                    : 'Tilføj favorit',
-                                onPressed: () => _toggleFavorite(item.id),
-                                icon: Icon(
-                                  _favoriteIds.contains(item.id)
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: Theme.of(context).colorScheme.primary,
+                                    ).colorScheme.primary,
+                                  ),
+                                )
+                              : CachedNetworkImage(
+                                  imageUrl: item.images.first.url,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
+                                        child: Icon(
+                                          Icons.directions_car,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      ),
                                 ),
-                              ),
-                            ],
-                          )
-                        : Text('${item.priceDkk.toString()} kr'),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ListingDetailsScreen(
-                            api: widget.api,
-                            listingId: item.id,
-                          ),
                         ),
-                      );
-                    },
+                      ),
+                      title: Text(item.title),
+                      subtitle: Text(_subtitle(item)),
+                      trailing: loggedIn
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('${item.priceDkk.toString()} kr'),
+                                IconButton(
+                                  tooltip: _favoriteIds.contains(item.id)
+                                      ? 'Fjern favorit'
+                                      : 'Tilføj favorit',
+                                  onPressed: () => _toggleFavorite(item.id),
+                                  icon: Icon(
+                                    _favoriteIds.contains(item.id)
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text('${item.priceDkk.toString()} kr'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ListingDetailsScreen(
+                              api: widget.api,
+                              listingId: item.id,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
-          ],
+                if (_loadingMore)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_hasMore)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: Text(
+                        'Viser ${_items.length} af $_totalItems annoncer',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: Text(
+                        'Alle $_totalItems annoncer vist',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ),
+              ],
+            ],
+          ),
         ),
       ),
     );
