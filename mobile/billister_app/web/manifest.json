@@ -1,11 +1,11 @@
 {
-    "name": "billister_app",
-    "short_name": "billister_app",
+    "name": "Billister",
+    "short_name": "Billister",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1a73e8",
+    "theme_color": "#1a73e8",
+    "description": "Billister – kvittering og utgiftsapp",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

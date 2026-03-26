@@ -1,9 +1,7 @@
+import '../config/app_config.dart';
+
 class ApiConfig {
-  // Override at build/run time with:
-  // flutter run --dart-define=API_BASE_URL=http://localhost:5072
-  // Android emulator uses 10.0.2.2 to reach host machine localhost.
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:5072',
-  );
+  // Deprecated: use AppConfig.current.apiBaseUrl instead.
+  // Kept for backward compatibility; reads from the active AppConfig.
+  static String get baseUrl => AppConfig.current.apiBaseUrl;
 }
