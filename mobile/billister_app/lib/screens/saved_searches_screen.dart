@@ -327,8 +327,8 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
                         const SizedBox(width: 4),
                         Text(
                           item.notificationsEnabled
-                              ? 'Notifikationer til'
-                              : 'Notifikationer fra',
+                              ? 'Notifikationer slået til'
+                              : 'Notifikationer slået fra',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
