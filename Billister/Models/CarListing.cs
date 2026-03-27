@@ -53,6 +53,9 @@ public sealed class CarListing
     // Extra attributes (for 40+ params) stored as JSON object to avoid schema churn.
     public string ExtraAttributesJson { get; set; } = "{}";
 
+    // Draft support
+    public bool IsDraft { get; set; }
+
     // Stats
     public long ViewCount { get; set; }
     public long FavoriteCount { get; set; }

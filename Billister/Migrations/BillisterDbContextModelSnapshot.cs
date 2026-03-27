@@ -210,6 +210,9 @@ namespace Billister.Migrations
                     b.Property<int?>("Horsepower")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsDraft")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool?>("IsPlugInHybrid")
                         .HasColumnType("INTEGER");
 

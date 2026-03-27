@@ -14,11 +14,11 @@ public static class ApiDtos
         public sealed record ListingImageDto(string Url, int SortOrder, int? Width, int? Height);
 
         public sealed record CreateListingRequest(
-            string Make,
-            string Model,
-            decimal PriceDkk,
-            string FuelType,
-            string Transmission,
+            string? Make,
+            string? Model,
+            decimal? PriceDkk,
+            string? FuelType,
+            string? Transmission,
             string? Variant,
             int? Year,
             int? MileageKm,
@@ -43,7 +43,8 @@ public static class ApiDtos
             string? Description,
             List<string>? Features,
             Dictionary<string, object?>? ExtraAttributes,
-            List<ListingImageDto>? Images);
+            List<ListingImageDto>? Images,
+            bool IsDraft = false);
 
         public sealed record UpdateListingRequest(
             decimal? PriceDkk,
