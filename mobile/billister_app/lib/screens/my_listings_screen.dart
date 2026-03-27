@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../widgets/empty_state_view.dart';
+import '../widgets/error_view.dart';
+import '../widgets/skeleton_loader.dart';
 import 'listing_details_screen.dart';
 
 class MyListingsScreen extends StatefulWidget {
@@ -67,23 +70,15 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(12),
           children: [
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
+          if (_loading)
+              const SkeletonListView(count: 4, shrinkWrap: true)
             else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              )
+              ErrorView(message: _error!, onRetry: _load)
             else if (items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('Du har ingen annoncer endnu.'),
+              const EmptyStateView(
+                icon: Icons.sell_outlined,
+                message: 'Ingen annoncer endnu',
+                subMessage: 'Opret din første annonce via "Sælg din bil".',
               )
             else
               ...items.map((x) => _listingTile(context, x)),

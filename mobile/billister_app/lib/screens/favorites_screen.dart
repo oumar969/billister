@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../widgets/empty_state_view.dart';
+import '../widgets/error_view.dart';
+import '../widgets/skeleton_loader.dart';
 import 'listing_details_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -82,16 +85,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonListView(count: 4)
           : _error != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(_error!),
-              ),
-            )
+          ? ErrorView(message: _error!, onRetry: _load)
           : _items.isEmpty
-          ? const Center(child: Text('Ingen favoritter endnu'))
+          ? const EmptyStateView(
+              icon: Icons.favorite_border,
+              message: 'Ingen favoritter endnu',
+              subMessage:
+                  'Tryk på hjertet på en annonce for at gemme den her.',
+            )
           : ListView.builder(
               itemCount: _items.length,
               itemBuilder: (context, index) {

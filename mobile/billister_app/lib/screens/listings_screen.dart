@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/criteria.dart';
 import '../api/models.dart';
+import '../widgets/empty_state_view.dart';
+import '../widgets/error_view.dart';
+import '../widgets/skeleton_loader.dart';
 import 'listing_details_screen.dart';
 import 'login_screen.dart';
 
@@ -410,6 +413,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   Widget build(BuildContext context) {
     final token = widget.api.token;
     final loggedIn = token != null && token.isNotEmpty;
+    final hasActiveFilters = widget.showFilters && !_criteria.isEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -441,34 +445,18 @@ class _ListingsScreenState extends State<ListingsScreen> {
               const SizedBox(height: 12),
             ],
             if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
+              const SkeletonListView(count: 5, shrinkWrap: true)
             else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      _error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: _load,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              )
+              ErrorView(message: _error!, onRetry: _load)
             else if (_page == null || _page!.items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('No listings yet')),
+              EmptyStateView(
+                icon: Icons.directions_car_outlined,
+                message: hasActiveFilters
+                    ? 'Ingen resultater'
+                    : 'Ingen annoncer endnu',
+                subMessage: hasActiveFilters
+                    ? 'Prøv at ændre søgekriterierne.'
+                    : null,
               )
             else
               ..._page!.items.map(
