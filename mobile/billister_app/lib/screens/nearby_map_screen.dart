@@ -64,10 +64,12 @@ class _NearbyMapScreenState extends State<NearbyMapScreen> {
         _error = 'Lokationstjeneste er deaktiveret. Aktiver den i indstillinger.';
         _loading = false;
       });
-    } on PermissionDeniedException {
+    } on PermissionDeniedException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Adgang til lokation blev afvist.';
+        _error = e.message == 'deniedForever'
+            ? 'Adgang til lokation er permanent afvist. Aktivér den i telefonens indstillinger.'
+            : 'Adgang til lokation blev afvist.';
         _loading = false;
       });
     } on ApiException catch (e) {
@@ -95,7 +97,11 @@ class _NearbyMapScreenState extends State<NearbyMapScreen> {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      throw PermissionDeniedException('denied');
+      throw PermissionDeniedException(
+        permission == LocationPermission.deniedForever
+            ? 'deniedForever'
+            : 'denied',
+      );
     }
 
     return Geolocator.getCurrentPosition(
