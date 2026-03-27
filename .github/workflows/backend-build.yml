@@ -1,0 +1,41 @@
+name: Backend Build & Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Billister/**'
+      - 'Billister.sln'
+      - '.github/workflows/backend-build.yml'
+  pull_request:
+    paths:
+      - 'Billister/**'
+      - 'Billister.sln'
+      - '.github/workflows/backend-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Test .NET Backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 7
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '7.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Billister.sln
+
+      - name: Build
+        run: dotnet build Billister.sln --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test Billister.sln --no-build --configuration Release --verbosity normal
