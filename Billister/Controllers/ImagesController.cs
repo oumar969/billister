@@ -64,9 +64,19 @@ public sealed class ImagesController : ControllerBase
         var fileName = $"{Guid.NewGuid()}{ext}";
         var filePath = Path.Combine(imagesDir, fileName);
 
-        await using var stream = new FileStream(
-            filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await file.CopyToAsync(stream, ct);
+        try
+        {
+            await using var stream = new FileStream(
+                filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await file.CopyToAsync(stream, ct);
+        }
+        catch
+        {
+            // Clean up the partial file so it does not accumulate on disk.
+            if (System.IO.File.Exists(filePath))
+                System.IO.File.Delete(filePath);
+            throw;
+        }
 
         var url = $"{Request.Scheme}://{Request.Host}/images/{fileName}";
         return Ok(new { url });

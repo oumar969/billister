@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -58,7 +59,7 @@ class ListingImagesPicker extends StatelessWidget {
   void _showPickerSheet(BuildContext context) {
     if (images.length >= _maxImages) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maks. 10 billeder tilladt')),
+        SnackBar(content: Text('Maks. $_maxImages billeder tilladt')),
       );
       return;
     }
@@ -193,6 +194,18 @@ class _ImageThumbnail extends StatelessWidget {
     required this.onDelete,
   });
 
+  Widget _brokenImagePlaceholder() {
+    return Container(
+      width: 100,
+      height: 120,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(Icons.broken_image, color: Colors.grey),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -201,21 +214,21 @@ class _ImageThumbnail extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.file(
-              File(file.path),
-              width: 100,
-              height: 120,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: 100,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.broken_image, color: Colors.grey),
-              ),
-            ),
+            child: kIsWeb
+                ? Image.network(
+                    file.path,
+                    width: 100,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _brokenImagePlaceholder(),
+                  )
+                : Image.file(
+                    File(file.path),
+                    width: 100,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _brokenImagePlaceholder(),
+                  ),
           ),
           if (isFirst)
             Positioned(
