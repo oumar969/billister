@@ -64,6 +64,7 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAiDescriptionService, AiDescriptionService>();
 builder.Services.AddScoped<IMotorregisterService, MotorregisterService>();
 builder.Services.AddScoped<ISavedSearchNotifier, SavedSearchNotifier>();
+builder.Services.AddScoped<IPriceAssessmentService, PriceAssessmentService>();
 
 var app = builder.Build();
 

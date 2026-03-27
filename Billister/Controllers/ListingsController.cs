@@ -17,12 +17,14 @@ public sealed class ListingsController : ControllerBase
     private readonly BillisterDbContext _db;
     private readonly IAiDescriptionService _ai;
     private readonly ISavedSearchNotifier _savedSearchNotifier;
+    private readonly IPriceAssessmentService _priceAssessment;
 
-    public ListingsController(BillisterDbContext db, IAiDescriptionService ai, ISavedSearchNotifier savedSearchNotifier)
+    public ListingsController(BillisterDbContext db, IAiDescriptionService ai, ISavedSearchNotifier savedSearchNotifier, IPriceAssessmentService priceAssessment)
     {
         _db = db;
         _ai = ai;
         _savedSearchNotifier = savedSearchNotifier;
+        _priceAssessment = priceAssessment;
     }
 
     [HttpGet]
@@ -431,6 +433,43 @@ public sealed class ListingsController : ControllerBase
         await _db.SaveChangesAsync(ct);
 
         return Ok(new { description = text });
+    }
+
+    [HttpGet("{id:guid}/price-assessment")]
+    public async Task<ActionResult<object>> PriceAssessment([FromRoute] Guid id, CancellationToken ct)
+    {
+        var listing = await _db.CarListings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+        if (listing is null) return NotFound();
+
+        var result = await _priceAssessment.AssessPriceAsync(listing, ct);
+
+        return Ok(new
+        {
+            listingId = id,
+            result.ListingPriceDkk,
+            result.SimilarListingsCount,
+            result.MedianPriceDkk,
+            result.AveragePriceDkk,
+            result.MinPriceDkk,
+            result.MaxPriceDkk,
+            result.Verdict,
+            result.PriceDifferencePercent,
+            similarListings = result.SimilarListings.Select(s => new
+            {
+                s.Id,
+                s.Make,
+                s.Model,
+                s.Variant,
+                s.Year,
+                s.MileageKm,
+                s.PriceDkk,
+                s.City,
+                s.ThumbnailUrl
+            })
+        });
     }
 
     private Guid GetUserId()
