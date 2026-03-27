@@ -12,6 +12,7 @@ class ListingsScreen extends StatefulWidget {
   final VoidCallback? onAuthChanged;
   final String title;
   final bool showFilters;
+  final ListingFilterCriteria? initialCriteria;
 
   const ListingsScreen({
     super.key,
@@ -19,6 +20,7 @@ class ListingsScreen extends StatefulWidget {
     this.onAuthChanged,
     this.title = 'Billister',
     this.showFilters = true,
+    this.initialCriteria,
   });
 
   @override
@@ -138,10 +140,34 @@ class _ListingsScreenState extends State<ListingsScreen> {
     _yearRange = RangeValues(_yearMinBound, _yearMaxBound);
     _mileageRange = const RangeValues(_mileageMinBound, _mileageMaxBound);
 
+    final ic = widget.initialCriteria;
+    if (ic != null && widget.showFilters) {
+      _applyInitialCriteria(ic);
+    }
+
     if (widget.showFilters) {
       _loadVehicleCatalog();
     }
     _load();
+  }
+
+  void _applyInitialCriteria(ListingFilterCriteria ic) {
+    if (ic.q != null && ic.q!.isNotEmpty) _qCtrl.text = ic.q!;
+    if (ic.priceMin != null) _priceMinCtrl.text = ic.priceMin!.toString();
+    if (ic.priceMax != null) _priceMaxCtrl.text = ic.priceMax!.toString();
+    if (ic.yearMin != null) _yearMinCtrl.text = ic.yearMin!.toString();
+    if (ic.yearMax != null) _yearMaxCtrl.text = ic.yearMax!.toString();
+    if (ic.mileageMin != null) _mileageMinCtrl.text = ic.mileageMin!.toString();
+    if (ic.mileageMax != null) _mileageMaxCtrl.text = ic.mileageMax!.toString();
+    if (ic.fuelTypes != null && ic.fuelTypes!.isNotEmpty) {
+      _selectedFuelType = ic.fuelTypes!.first;
+    }
+    if (ic.transmissions != null && ic.transmissions!.isNotEmpty) {
+      _transmissionsCtrl.text = ic.transmissions!.join(', ');
+    }
+    if (ic.requiredFeatures != null && ic.requiredFeatures!.isNotEmpty) {
+      _requiredFeaturesCtrl.text = ic.requiredFeatures!.join(', ');
+    }
   }
 
   void _syncPriceRangeFromText() {
@@ -359,7 +385,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
         _items = page.items;
         _totalItems = page.total;
         _currentPage = 1;
-        _hasMore = page.items.length + 0 < page.total;
+        _hasMore = page.items.length < page.total;
         _favoriteIds = favoriteIds;
       });
     } catch (e) {
