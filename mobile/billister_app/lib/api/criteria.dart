@@ -20,6 +20,9 @@ class ListingFilterCriteria {
 
   final List<String>? requiredFeatures;
 
+  // Sorting: newest (default), price_asc, price_desc, mileage_asc, mileage_desc, year_desc, year_asc
+  final String? sortBy;
+
   const ListingFilterCriteria({
     this.q,
     this.make,
@@ -35,6 +38,7 @@ class ListingFilterCriteria {
     this.priceMin,
     this.priceMax,
     this.requiredFeatures,
+    this.sortBy,
   });
 
   bool get isEmpty {
@@ -51,7 +55,8 @@ class ListingFilterCriteria {
         mileageMax == null &&
         priceMin == null &&
         priceMax == null &&
-        (requiredFeatures == null || requiredFeatures!.isEmpty);
+        (requiredFeatures == null || requiredFeatures!.isEmpty) &&
+        sortBy == null;
   }
 
   static List<String>? _normalizeList(List<String>? values) {
@@ -107,6 +112,8 @@ class ListingFilterCriteria {
 
     final features = _normalizeList(requiredFeatures);
     if (features != null) map['requiredFeatures'] = features;
+
+    if (sortBy != null) map['sortBy'] = sortBy;
 
     return map;
   }

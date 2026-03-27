@@ -72,6 +72,7 @@ public static class ApiDtos
             bool? HasTowHook,
             bool? HasFourWheelDrive,
             string? Feature,
+            string? SortBy,
             int Page = 1,
             int PageSize = 20);
 

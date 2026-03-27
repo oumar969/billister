@@ -48,6 +48,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   final List<VehicleModel> _selectedModels = <VehicleModel>[];
 
   String? _selectedFuelType;
+  String? _selectedSortBy;
 
   static const double _priceMinBound = 0;
   static const double _priceMaxBound = 1000000;
@@ -119,6 +120,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
           ? null
           : tryInt(_mileageMaxCtrl.text),
       requiredFeatures: parseCsv(_requiredFeaturesCtrl.text),
+      sortBy: _selectedSortBy,
     );
   }
 
@@ -861,6 +863,53 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 hintText: 'navigation, adaptiv_fartpilot',
               ),
             ),
+            const SizedBox(height: 8),
+            InputDecorator(
+              decoration: const InputDecoration(labelText: 'Sortering'),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  isExpanded: true,
+                  value: _selectedSortBy,
+                  items: const [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Nyeste'),
+                    ),
+                    DropdownMenuItem<String?>(
+                      value: 'price_asc',
+                      child: Text('Pris: lav → høj'),
+                    ),
+                    DropdownMenuItem<String?>(
+                      value: 'price_desc',
+                      child: Text('Pris: høj → lav'),
+                    ),
+                    DropdownMenuItem<String?>(
+                      value: 'mileage_asc',
+                      child: Text('Km: lav → høj'),
+                    ),
+                    DropdownMenuItem<String?>(
+                      value: 'mileage_desc',
+                      child: Text('Km: høj → lav'),
+                    ),
+                    DropdownMenuItem<String?>(
+                      value: 'year_desc',
+                      child: Text('År: ny → gammel'),
+                    ),
+                    DropdownMenuItem<String?>(
+                      value: 'year_asc',
+                      child: Text('År: gammel → ny'),
+                    ),
+                  ],
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            _selectedSortBy = v;
+                          });
+                        },
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -905,6 +954,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                             _mileageMaxBound,
                           );
                           _selectedFuelType = null;
+                          _selectedSortBy = null;
                           _transmissionsCtrl.clear();
                           _requiredFeaturesCtrl.clear();
                           _load();
