@@ -26,11 +26,17 @@ class AppConfig {
     apiBaseUrl: 'https://api.billister.no',
   );
 
-  static AppConfig get current => _instance;
+  static AppConfig get current {
+    assert(_initialized, 'AppConfig.setInstance() must be called in main() before runApp().');
+    return _instance;
+  }
 
   static AppConfig _instance = prod;
+  static bool _initialized = false;
 
+  /// Call once in `main()`, before `runApp()`, to select the active flavor.
   static void setInstance(AppConfig config) {
     _instance = config;
+    _initialized = true;
   }
 }

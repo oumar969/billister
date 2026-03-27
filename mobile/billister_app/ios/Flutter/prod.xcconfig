@@ -1,7 +1,7 @@
 #include "Generated.xcconfig"
-#include "flutter_export_environment.xcconfig"
 
+// Prod flavor configuration.
+// Use with: flutter run --flavor prod -t lib/main_prod.dart
 FLUTTER_TARGET=lib/main_prod.dart
 PRODUCT_BUNDLE_IDENTIFIER=com.billister.app
 DISPLAY_NAME=Billister
-DART_DEFINES=FLAVOR=prod

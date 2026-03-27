@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'api/api_client.dart';
 import 'config/app_config.dart';
 import 'screens/main_tabs_screen.dart';
+import 'widgets/flavor_banner.dart';
 
 class BillisterApp extends StatefulWidget {
   const BillisterApp({super.key});
@@ -33,7 +34,7 @@ class _BillisterAppState extends State<BillisterApp> {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
-      home: MainTabsScreen(api: _api),
+      home: FlavorBanner(child: MainTabsScreen(api: _api)),
     );
   }
 }

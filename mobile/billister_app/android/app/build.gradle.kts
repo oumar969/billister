@@ -19,6 +19,13 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
+    defaultConfig {
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
     flavorDimensions += "environment"
 
     productFlavors {
@@ -33,13 +40,6 @@ android {
             applicationId = "com.billister.app"
             resValue("string", "app_name", "Billister")
         }
-    }
-
-    defaultConfig {
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
     }
 
     buildTypes {
