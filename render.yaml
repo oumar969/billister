@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: billister-api
+    runtime: dotnet
+    runtimeVersion: 7
+    buildCommand: dotnet build Billister/Billister.csproj
+    startCommand: dotnet run --project Billister/Billister.csproj --no-build
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
