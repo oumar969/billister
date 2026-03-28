@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final ApiClient api;
@@ -55,52 +56,99 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _goToRegister() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => RegisterScreen(api: widget.api)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _emailCtrl,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (v) {
-                  final value = (v ?? '').trim();
-                  if (value.isEmpty) return 'Email is required';
-                  if (!value.contains('@')) return 'Invalid email';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _pwCtrl,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (v) {
-                  final value = v ?? '';
-                  if (value.isEmpty) return 'Password is required';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              if (_error != null) ...[
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 24),
                 Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  'Velkommen til Billister',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 32),
+                TextFormField(
+                  controller: _emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) {
+                    final value = (v ?? '').trim();
+                    if (value.isEmpty) return 'Email er påkrævet';
+                    if (!value.contains('@')) return 'Ugyldigt email format';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _pwCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Adgangskode',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                  validator: (v) {
+                    final value = v ?? '';
+                    if (value.isEmpty) return 'Adgangskode er påkrævet';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                if (_error != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                FilledButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      _isSubmitting ? 'Logger ind…' : 'Login',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Har du ikke en konto?'),
+                    TextButton(
+                      onPressed: _goToRegister,
+                      child: const Text('Registrer dig'),
+                    ),
+                  ],
+                ),
               ],
-              FilledButton(
-                onPressed: _isSubmitting ? null : _submit,
-                child: Text(_isSubmitting ? 'Logging in…' : 'Login'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

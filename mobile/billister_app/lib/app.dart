@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api/api_client.dart';
 import 'config/app_config.dart';
@@ -6,7 +7,9 @@ import 'screens/main_tabs_screen.dart';
 import 'widgets/flavor_banner.dart';
 
 class BillisterApp extends StatefulWidget {
-  const BillisterApp({super.key});
+  final SharedPreferences sharedPreferences;
+
+  const BillisterApp({super.key, required this.sharedPreferences});
 
   @override
   State<BillisterApp> createState() => _BillisterAppState();
@@ -18,7 +21,18 @@ class _BillisterAppState extends State<BillisterApp> {
   @override
   void initState() {
     super.initState();
-    _api = ApiClient(baseUrl: AppConfig.current.apiBaseUrl);
+    _api = ApiClient(
+      baseUrl: AppConfig.current.apiBaseUrl,
+      prefs: widget.sharedPreferences,
+    );
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    await _api.restoreSession();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override

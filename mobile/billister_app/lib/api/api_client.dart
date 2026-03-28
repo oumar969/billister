@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'criteria.dart';
 import 'models.dart';
@@ -24,13 +26,21 @@ class ApiException implements Exception {
 class ApiClient {
   final String baseUrl;
   final http.Client _http;
+  final SharedPreferences? _prefs;
 
   static const Duration _requestTimeout = Duration(seconds: 8);
+  static const String _tokenKey = 'billister_auth_token';
+  static const String _userKey = 'billister_auth_user';
 
   String? token;
+  User? currentUser;
 
-  ApiClient({required this.baseUrl, http.Client? httpClient})
-    : _http = httpClient ?? http.Client();
+  ApiClient({
+    required this.baseUrl,
+    http.Client? httpClient,
+    SharedPreferences? prefs,
+  }) : _http = httpClient ?? http.Client(),
+       _prefs = prefs;
 
   Future<http.Response> _send(Future<http.Response> Function() fn) async {
     try {
@@ -78,7 +88,43 @@ class ApiClient {
     return headers;
   }
 
-  Future<String> login({
+  Future<void> _saveSession() async {
+    if (_prefs == null) return;
+    if (token != null) {
+      await _prefs.setString(_tokenKey, token!);
+    }
+    if (currentUser != null) {
+      await _prefs.setString(_userKey, jsonEncode(currentUser!.toJson()));
+    }
+  }
+
+  Future<void> restoreSession() async {
+    if (_prefs == null) return;
+    try {
+      final savedToken = _prefs.getString(_tokenKey);
+      final savedUserJson = _prefs.getString(_userKey);
+
+      if (savedToken != null && savedUserJson != null) {
+        token = savedToken;
+        currentUser = User.fromJson(
+          jsonDecode(savedUserJson) as Map<String, dynamic>,
+        );
+      }
+    } catch (e) {
+      // Hvis restoration fejler, bare fortsæt uden session
+      debugPrint('Fejl ved gendannelse af session: $e');
+    }
+  }
+
+  Future<void> clearSession() async {
+    token = null;
+    currentUser = null;
+    if (_prefs == null) return;
+    await _prefs.remove(_tokenKey);
+    await _prefs.remove(_userKey);
+  }
+
+  Future<AuthResponse> login({
     required String email,
     required String password,
   }) async {
@@ -92,25 +138,63 @@ class ApiClient {
 
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body) as Map<String, dynamic>;
-      final t = json['token'] as String?;
-      if (t == null || t.isEmpty) {
-        throw const ApiException('Login response missing token');
-      }
-      token = t;
-      return t;
+      final authResponse = AuthResponse.fromJson(json);
+      token = authResponse.accessToken;
+      currentUser = authResponse.user;
+      await _saveSession();
+      return authResponse;
     }
 
     if (res.statusCode == 401) {
-      throw const ApiException(
-        'Unauthorized: wrong email/password',
-        statusCode: 401,
-      );
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final error =
+          json['error'] as String? ?? 'Ugyldigt email eller adgangskode';
+      throw ApiException(error, statusCode: 401);
     }
 
-    throw ApiException(
-      'Login failed (${res.statusCode})',
-      statusCode: res.statusCode,
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    final error =
+        json['error'] as String? ?? 'Login mislykkedes (${res.statusCode})';
+    throw ApiException(error, statusCode: res.statusCode);
+  }
+
+  Future<AuthResponse> register({
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/register'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({
+          'username': username,
+          'email': email,
+          'password': password,
+        }),
+      ),
     );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final authResponse = AuthResponse.fromJson(json);
+      token = authResponse.accessToken;
+      currentUser = authResponse.user;
+      await _saveSession();
+      return authResponse;
+    }
+
+    if (res.statusCode == 400) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final error = json['error'] as String? ?? 'Registrering mislykkedes';
+      throw ApiException(error, statusCode: 400);
+    }
+
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    final error =
+        json['error'] as String? ??
+        'Registrering mislykkedes (${res.statusCode})';
+    throw ApiException(error, statusCode: res.statusCode);
   }
 
   Future<ListingsPage> fetchListings({int page = 1, int pageSize = 20}) async {

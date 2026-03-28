@@ -81,6 +81,7 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAiDescriptionService, AiDescriptionService>();
 builder.Services.AddScoped<IMotorregisterService, MotorregisterService>();
 builder.Services.AddScoped<ISavedSearchNotifier, SavedSearchNotifier>();
+builder.Services.AddScoped<IInputValidationService, InputValidationService>();
 
 var app = builder.Build();
 
@@ -164,14 +165,26 @@ using (var scope = app.Services.CreateScope())
     {
         var devAdminEmail = builder.Configuration["DevAdmin:Email"] ?? "admin@billister.local";
         var devAdminPassword = builder.Configuration["DevAdmin:Password"] ?? "Admin1234";
+        var devUserEmail = builder.Configuration["DevUser:Email"] ?? "user@billister.local";
+        var devUserPassword = builder.Configuration["DevUser:Password"] ?? "User1234";
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+
+        // Create Admin role if it doesn't exist
         if (!await roleManager.RoleExistsAsync("Admin"))
         {
             await roleManager.CreateAsync(new ApplicationRole { Name = "Admin" });
         }
 
+        // Create User role if it doesn't exist
+        if (!await roleManager.RoleExistsAsync("User"))
+        {
+            await roleManager.CreateAsync(new ApplicationRole { Name = "User" });
+        }
+
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        // Create/update dev admin user
         var adminUser = await userManager.FindByEmailAsync(devAdminEmail);
         if (adminUser is null)
         {
@@ -204,6 +217,42 @@ using (var scope = app.Services.CreateScope())
             if (!isAdmin)
             {
                 await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+        }
+
+        // Create/update dev regular user
+        var regularUser = await userManager.FindByEmailAsync(devUserEmail);
+        if (regularUser is null)
+        {
+            regularUser = new ApplicationUser
+            {
+                UserName = devUserEmail,
+                Email = devUserEmail,
+                EmailConfirmed = true
+            };
+
+            var createRes = await userManager.CreateAsync(regularUser, devUserPassword);
+            if (!createRes.Succeeded)
+            {
+                var errors = string.Join("; ", createRes.Errors.Select(e => e.Description));
+                app.Logger.LogWarning("Dev user was not created: {Errors}", errors);
+            }
+        }
+
+        if (regularUser is not null)
+        {
+            var resetToken = await userManager.GeneratePasswordResetTokenAsync(regularUser);
+            var resetRes = await userManager.ResetPasswordAsync(regularUser, resetToken, devUserPassword);
+            if (!resetRes.Succeeded)
+            {
+                var errors = string.Join("; ", resetRes.Errors.Select(e => e.Description));
+                app.Logger.LogWarning("Dev user password was not updated: {Errors}", errors);
+            }
+
+            var isUser = await userManager.IsInRoleAsync(regularUser, "User");
+            if (!isUser)
+            {
+                await userManager.AddToRoleAsync(regularUser, "User");
             }
         }
     }

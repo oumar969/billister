@@ -4,9 +4,14 @@ public static class ApiDtos
 {
     public static class Auth
     {
-        public sealed record RegisterRequest(string Email, string Password);
+        public sealed record RegisterRequest(string Username, string Email, string Password);
         public sealed record LoginRequest(string Email, string Password);
-        public sealed record AuthResponse(string Token);
+        public sealed record AuthResponse(
+            string AccessToken,
+            string? RefreshToken,
+            UserDto User);
+        public sealed record RefreshTokenRequest(string RefreshToken);
+        public sealed record UserDto(Guid Id, string Email, string Username, List<string> Roles);
     }
 
     public static class Listings

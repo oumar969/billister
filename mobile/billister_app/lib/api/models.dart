@@ -1,3 +1,55 @@
+class User {
+  final String id;
+  final String email;
+  final String username;
+  final List<String> roles;
+
+  const User({
+    required this.id,
+    required this.email,
+    required this.username,
+    required this.roles,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] as String,
+      email: json['email'] as String,
+      username: json['username'] as String,
+      roles: List<String>.from((json['roles'] as List<dynamic>?) ?? []),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'email': email,
+    'username': username,
+    'roles': roles,
+  };
+
+  bool get isAdmin => roles.contains('Admin');
+}
+
+class AuthResponse {
+  final String accessToken;
+  final String? refreshToken;
+  final User user;
+
+  const AuthResponse({
+    required this.accessToken,
+    this.refreshToken,
+    required this.user,
+  });
+
+  factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    return AuthResponse(
+      accessToken: json['accessToken'] as String,
+      refreshToken: json['refreshToken'] as String?,
+      user: User.fromJson(json['user'] as Map<String, dynamic>),
+    );
+  }
+}
+
 class ListingImage {
   final String url;
   final int sortOrder;

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config/app_config.dart';
 import 'api/api_client.dart';
@@ -9,13 +10,17 @@ import 'api/api_config.dart';
 import 'screens/listing_details_screen.dart';
 import 'screens/main_tabs_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
   AppConfig.setInstance(AppConfig.prod);
-  runApp(const BillisterApp());
+  runApp(BillisterApp(sharedPreferences: prefs));
 }
 
 class BillisterApp extends StatefulWidget {
-  const BillisterApp({super.key});
+  final SharedPreferences sharedPreferences;
+
+  const BillisterApp({super.key, required this.sharedPreferences});
 
   @override
   State<BillisterApp> createState() => _BillisterAppState();
@@ -30,8 +35,19 @@ class _BillisterAppState extends State<BillisterApp> {
   @override
   void initState() {
     super.initState();
-    _api = ApiClient(baseUrl: ApiConfig.baseUrl);
+    _api = ApiClient(
+      baseUrl: ApiConfig.baseUrl,
+      prefs: widget.sharedPreferences,
+    );
     _initDeepLinks();
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    await _api.restoreSession();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _initDeepLinks() async {

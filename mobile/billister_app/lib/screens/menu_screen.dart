@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
@@ -14,37 +12,9 @@ class MenuScreen extends StatelessWidget {
   final ApiClient api;
   final VoidCallback? onAuthChanged;
 
-  Map<String, dynamic>? _tryDecodeJwtPayload(String token) {
-    final parts = token.split('.');
-    if (parts.length != 3) return null;
-
-    final payload = parts[1];
-    final normalized = base64Url.normalize(payload);
-
-    try {
-      final bytes = base64Url.decode(normalized);
-      final json = jsonDecode(utf8.decode(bytes));
-      return json is Map<String, dynamic> ? json : null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  String? _firstNonEmpty(Map<String, dynamic>? payload, List<String> keys) {
-    if (payload == null) return null;
-
-    for (final k in keys) {
-      final v = payload[k];
-      if (v is String) {
-        final s = v.trim();
-        if (s.isNotEmpty) return s;
-      }
-    }
-    return null;
-  }
-
   Future<void> _logout(BuildContext context) async {
-    api.token = null;
+    await api.clearSession();
+    if (!context.mounted) return;
     onAuthChanged?.call();
 
     ScaffoldMessenger.of(
@@ -75,24 +45,12 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final token = api.token;
-    final loggedIn = token != null && token.isNotEmpty;
-    final payload = loggedIn ? _tryDecodeJwtPayload(token) : null;
+    final user = api.currentUser;
+    final loggedIn = user != null;
 
-    final name = _firstNonEmpty(payload, const [
-      'name',
-      'given_name',
-      'unique_name',
-      'sub',
-    ]);
-    final email = _firstNonEmpty(payload, const [
-      'email',
-      'preferred_username',
-      'unique_name',
-    ]);
-    final phone = _firstNonEmpty(payload, const ['phone_number', 'phone']);
-
-    final displayName = (name == null || name.isEmpty) ? 'Gæst' : name;
+    final displayName = user?.username ?? 'Gæst';
+    final email = user?.email ?? '';
+    final isAdmin = user?.isAdmin ?? false;
 
     return Scaffold(
       body: SafeArea(
@@ -108,10 +66,16 @@ class MenuScreen extends StatelessWidget {
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.person_outline,
-                      size: 34,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    child: Text(
+                      displayName.isNotEmpty
+                          ? displayName[0].toUpperCase()
+                          : '?',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -124,7 +88,7 @@ class MenuScreen extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 4),
-                        if (email != null && email.isNotEmpty)
+                        if (email.isNotEmpty)
                           Text(
                             email,
                             style: Theme.of(context).textTheme.bodyMedium,
@@ -134,12 +98,9 @@ class MenuScreen extends StatelessWidget {
                             loggedIn ? ' ' : 'Ikke logget ind',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
-                        if (phone != null && phone.isNotEmpty) ...[
+                        if (isAdmin) ...[
                           const SizedBox(height: 2),
-                          Text(
-                            phone,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
+                          Chip(label: const Text('Admin')),
                         ],
                       ],
                     ),
