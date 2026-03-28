@@ -30,10 +30,15 @@ class ApiClient {
 
   static const Duration _requestTimeout = Duration(seconds: 8);
   static const String _tokenKey = 'billister_auth_token';
+  static const String _refreshTokenKey = 'billister_refresh_token';
   static const String _userKey = 'billister_auth_user';
 
   String? token;
+  String? refreshToken;
   User? currentUser;
+
+  // Mutex to prevent concurrent refresh attempts
+  bool _refreshing = false;
 
   ApiClient({
     required this.baseUrl,
@@ -42,7 +47,14 @@ class ApiClient {
   }) : _http = httpClient ?? http.Client(),
        _prefs = prefs;
 
-  Future<http.Response> _send(Future<http.Response> Function() fn) async {
+  Future<http.Response> _send(
+    Future<http.Response> Function() fn, {
+    bool ensureValidToken = false,
+  }) async {
+    if (ensureValidToken) {
+      await _ensureValidToken();
+    }
+
     try {
       return await fn().timeout(_requestTimeout);
     } on TimeoutException {
@@ -88,10 +100,81 @@ class ApiClient {
     return headers;
   }
 
+  DateTime? _parseJwtExpiration(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+
+      final payload = parts[1];
+      final normalized = base64Url.normalize(payload);
+      final bytes = base64Url.decode(normalized);
+      final json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+      
+      final exp = json['exp'] as int?;
+      if (exp == null) return null;
+
+      return DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _shouldRefreshToken() {
+    if (token == null || refreshToken == null) return false;
+    
+    final expiresAt = _parseJwtExpiration(token!);
+    if (expiresAt == null) return false;
+
+    // Refresh if token expires within 2 minutes
+    final now = DateTime.now().toUtc();
+    final refreshThreshold = expiresAt.subtract(const Duration(minutes: 2));
+    return now.isAfter(refreshThreshold);
+  }
+
+  Future<void> _performRefresh() async {
+    if (_refreshing || refreshToken == null) return;
+
+    _refreshing = true;
+    try {
+      final res = await _send(
+        () => _http.post(
+          _uri('/api/auth/refresh'),
+          headers: _jsonHeaders(),
+          body: jsonEncode({'refreshToken': refreshToken}),
+        ),
+      );
+
+      if (res.statusCode == 200) {
+        final json = jsonDecode(res.body) as Map<String, dynamic>;
+        final authResponse = AuthResponse.fromJson(json);
+        token = authResponse.accessToken;
+        refreshToken = authResponse.refreshToken;
+        currentUser = authResponse.user;
+        await _saveSession();
+      } else if (res.statusCode == 401) {
+        // Refresh token is invalid, clear session
+        await clearSession();
+      }
+    } catch (e) {
+      debugPrint('Token refresh failed: $e');
+    } finally {
+      _refreshing = false;
+    }
+  }
+
+  Future<void> _ensureValidToken() async {
+    if (_shouldRefreshToken()) {
+      await _performRefresh();
+    }
+  }
+
   Future<void> _saveSession() async {
     if (_prefs == null) return;
     if (token != null) {
       await _prefs.setString(_tokenKey, token!);
+    }
+    if (refreshToken != null) {
+      await _prefs.setString(_refreshTokenKey, refreshToken!);
     }
     if (currentUser != null) {
       await _prefs.setString(_userKey, jsonEncode(currentUser!.toJson()));
@@ -102,10 +185,12 @@ class ApiClient {
     if (_prefs == null) return;
     try {
       final savedToken = _prefs.getString(_tokenKey);
+      final savedRefreshToken = _prefs.getString(_refreshTokenKey);
       final savedUserJson = _prefs.getString(_userKey);
 
-      if (savedToken != null && savedUserJson != null) {
+      if (savedToken != null && savedRefreshToken != null && savedUserJson != null) {
         token = savedToken;
+        refreshToken = savedRefreshToken;
         currentUser = User.fromJson(
           jsonDecode(savedUserJson) as Map<String, dynamic>,
         );
@@ -118,9 +203,11 @@ class ApiClient {
 
   Future<void> clearSession() async {
     token = null;
+    refreshToken = null;
     currentUser = null;
     if (_prefs == null) return;
     await _prefs.remove(_tokenKey);
+    await _prefs.remove(_refreshTokenKey);
     await _prefs.remove(_userKey);
   }
 
@@ -140,6 +227,7 @@ class ApiClient {
       final json = jsonDecode(res.body) as Map<String, dynamic>;
       final authResponse = AuthResponse.fromJson(json);
       token = authResponse.accessToken;
+      refreshToken = authResponse.refreshToken;
       currentUser = authResponse.user;
       await _saveSession();
       return authResponse;
@@ -179,6 +267,7 @@ class ApiClient {
       final json = jsonDecode(res.body) as Map<String, dynamic>;
       final authResponse = AuthResponse.fromJson(json);
       token = authResponse.accessToken;
+      refreshToken = authResponse.refreshToken;
       currentUser = authResponse.user;
       await _saveSession();
       return authResponse;
@@ -273,6 +362,7 @@ class ApiClient {
         _uri('/api/favorites'),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 200) {
@@ -301,6 +391,7 @@ class ApiClient {
         _uri('/api/favorites/$listingId'),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 204) return;
@@ -323,6 +414,7 @@ class ApiClient {
         _uri('/api/favorites/$listingId'),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 204) return;
@@ -387,6 +479,7 @@ class ApiClient {
         }),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 200) {
@@ -410,6 +503,7 @@ class ApiClient {
         _uri('/api/chats/seller-inquiries'),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 200) {
@@ -451,6 +545,7 @@ class ApiClient {
           if (isSold != null) 'isSold': isSold,
         }),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 204) return;
@@ -476,6 +571,7 @@ class ApiClient {
         _uri('/api/listings/$listingId'),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 204) return;
@@ -534,6 +630,7 @@ class ApiClient {
           'images': images?.map((img) => img.toJson()).toList(),
         }),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 201) {
@@ -706,6 +803,7 @@ class ApiClient {
         _uri('/api/saved-searches'),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 200) {
@@ -796,6 +894,7 @@ class ApiClient {
         _uri('/api/notifications'),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 200) {
@@ -824,6 +923,7 @@ class ApiClient {
         _uri('/api/notifications/$id'),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 204) return;
@@ -843,6 +943,7 @@ class ApiClient {
         _uri('/api/notifications'),
         headers: _jsonHeaders(includeAuth: true),
       ),
+      ensureValidToken: true,
     );
 
     if (res.statusCode == 204) return;
@@ -861,8 +962,7 @@ class ApiClient {
       () => _http.delete(
         _uri('/api/saved-searches/$id'),
         headers: _jsonHeaders(includeAuth: true),
-      ),
-    );
+      ),      ensureValidToken: true,    );
 
     if (res.statusCode == 204) return;
     if (res.statusCode == 401) {

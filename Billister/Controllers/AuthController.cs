@@ -72,7 +72,7 @@ public sealed class AuthController : ControllerBase
 
         var roles = await _userManager.GetRolesAsync(user);
         var accessToken = _jwt.CreateAccessToken(user, roles);
-        var refreshToken = _jwt.CreateRefreshToken();
+        var refreshToken = _jwt.CreateRefreshToken(user, roles);
 
         var userDto = new ApiDtos.Auth.UserDto(
             user.Id,
@@ -104,7 +104,7 @@ public sealed class AuthController : ControllerBase
 
         var roles = await _userManager.GetRolesAsync(user);
         var accessToken = _jwt.CreateAccessToken(user, roles);
-        var refreshToken = _jwt.CreateRefreshToken();
+        var refreshToken = _jwt.CreateRefreshToken(user, roles);
 
         var userDto = new ApiDtos.Auth.UserDto(
             user.Id,
@@ -121,8 +121,26 @@ public sealed class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.RefreshToken))
             return BadRequest(new { error = "Refresh token er påkrævet" });
 
-        // TODO: Implement refresh token validation and user lookup
-        // For now, return a placeholder response
-        return BadRequest(new { error = "Refresh token feature er ikke implementeret endnu" });
+        var (isValid, userId, email, username, roles) = _jwt.ValidateRefreshToken(req.RefreshToken);
+        
+        if (!isValid || string.IsNullOrEmpty(userId))
+            return Unauthorized(new { error = "Ugyldig eller udløbet refresh token" });
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return Unauthorized(new { error = "Bruger ikke fundet" });
+
+        // Generate new tokens
+        var userRoles = await _userManager.GetRolesAsync(user);
+        var accessToken = _jwt.CreateAccessToken(user, userRoles);
+        var newRefreshToken = _jwt.CreateRefreshToken(user, userRoles);
+
+        var userDto = new ApiDtos.Auth.UserDto(
+            user.Id,
+            user.Email ?? string.Empty,
+            user.UserName ?? string.Empty,
+            userRoles.ToList());
+
+        return Ok(new ApiDtos.Auth.AuthResponse(accessToken, newRefreshToken, userDto));
     }
 }
