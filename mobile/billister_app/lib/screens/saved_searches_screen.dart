@@ -69,7 +69,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Kunne ikke slette søgning: $e')),
+        SnackBar(content: Text('Kunne ikke slette søgeagent: $e')),
       );
     }
   }
@@ -133,13 +133,13 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Gem søgning'),
+        title: const Text('Gem søgeagent'),
         content: TextField(
           controller: nameCtrl,
           autofocus: true,
           decoration: const InputDecoration(
-            labelText: 'Navn på søgning',
-            hintText: 'f.eks. Billig el-bil',
+            labelText: 'Navn på søgeagent',
+            hintText: 'F.eks. VW Golf under 200.000 kr',
           ),
           textCapitalization: TextCapitalization.sentences,
         ),
@@ -148,7 +148,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Annuller'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Gem'),
           ),
@@ -170,7 +170,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Kunne ikke gemme søgning: $e')),
+        SnackBar(content: Text('Kunne ikke gemme søgeagent: $e')),
       );
     }
   }
@@ -182,7 +182,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Søgeagent'),
+        title: const Text('Søgeagenter'),
         actions: [
           if (loggedIn)
             IconButton(
@@ -201,10 +201,10 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
                       ? _buildEmpty()
                       : _buildList(),
       floatingActionButton: loggedIn
-          ? FloatingActionButton(
+          ? FloatingActionButton.extended(
               onPressed: _showCreateDialog,
-              tooltip: 'Tilføj søgning',
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.add),
+              label: const Text('Ny søgeagent'),
             )
           : null,
     );
@@ -220,7 +220,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
             const Icon(Icons.notifications_none, size: 64),
             const SizedBox(height: 16),
             const Text(
-              'Log ind for at gemme dine søgninger og modtage notifikationer om nye biler.',
+              'Log ind for at gemme dine søgeagenter og modtage notifikationer om nye biler.',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -261,16 +261,16 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
   }
 
   Widget _buildEmpty() {
-    return Center(
+    return const Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.manage_search_outlined, size: 64),
-            const SizedBox(height: 16),
-            const Text(
-              'Du har ingen gemte søgninger endnu.\nTryk på + for at oprette en.',
+            Icon(Icons.manage_search_outlined, size: 64),
+            SizedBox(height: 16),
+            Text(
+              'Ingen søgeagenter endnu.\nTryk + for at gemme en søgning og få besked om nye biler.',
               textAlign: TextAlign.center,
             ),
           ],
@@ -283,22 +283,23 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.only(bottom: 80),
         itemCount: _items.length,
         itemBuilder: (context, index) {
           final item = _items[index];
           return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: ListTile(
-              leading: const Icon(Icons.search),
+              leading: const Icon(Icons.notifications_active_outlined),
               title: Text(item.name),
               subtitle: item.lastNotifiedAtUtc != null
                   ? Text(
                       'Seneste match: ${_formatDate(item.lastNotifiedAtUtc!)}',
                     )
-                  : const Text('Ingen matches endnu'),
+                  : Text('Oprettet ${_formatDate(item.createdAtUtc)}'),
               trailing: IconButton(
                 icon: const Icon(Icons.delete_outline),
-                tooltip: 'Slet søgning',
+                tooltip: 'Slet søgeagent',
                 onPressed: () => _confirmDelete(item),
               ),
               onTap: () => _openSearch(item),
@@ -313,7 +314,7 @@ class _SavedSearchesScreenState extends State<SavedSearchesScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Slet søgning'),
+        title: const Text('Slet søgeagent'),
         content: Text('Er du sikker på, at du vil slette "${item.name}"?'),
         actions: [
           TextButton(

@@ -45,6 +45,38 @@ class _ListingsScreenState extends State<ListingsScreen> {
     'hybrid',
   ];
 
+  static const List<String> _transmissionOptions = <String>[
+    'automat',
+    'manuel',
+  ];
+
+  // (label, minHp)
+  static const List<(String, int)> _hpPresets = <(String, int)>[
+    ('100+ hk', 100),
+    ('150+ hk', 150),
+    ('200+ hk', 200),
+    ('300+ hk', 300),
+  ];
+
+  // (label, minRangeKm) – for electric range quick filters
+  static const List<(String, int)> _rangePresets = <(String, int)>[
+    ('300+ km', 300),
+    ('400+ km', 400),
+    ('500+ km', 500),
+  ];
+
+  // (label, featureKey) – common equipment quick filters
+  static const List<(String, String)> _equipmentOptions = <(String, String)>[
+    ('Navigation', 'navigation'),
+    ('Adaptiv fartpilot', 'adaptiv_fartpilot'),
+    ('Panoramatag', 'panoramatag'),
+    ('Læder', 'læder'),
+    ('Varme sæder', 'varme_sæder'),
+    ('Trådløs opladning', 'trådløs_opladning'),
+    ('Head-up display', 'head_up_display'),
+    ('360° kamera', '360_kamera'),
+  ];
+
   bool _catalogLoading = false;
   String? _catalogError;
   List<VehicleMake> _makes = const <VehicleMake>[];

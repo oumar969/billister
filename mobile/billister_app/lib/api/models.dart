@@ -325,7 +325,7 @@ class SavedSearch {
   final String id;
   final String name;
   final String criteriaJson;
-  final DateTime? createdAtUtc;
+  final DateTime createdAtUtc;
   final DateTime? updatedAtUtc;
   final DateTime? lastNotifiedAtUtc;
 
@@ -334,8 +334,8 @@ class SavedSearch {
     required this.name,
     required this.criteriaJson,
     required this.createdAtUtc,
-    required this.updatedAtUtc,
-    required this.lastNotifiedAtUtc,
+    this.updatedAtUtc,
+    this.lastNotifiedAtUtc,
   });
 
   factory SavedSearch.fromJson(Map<String, dynamic> json) {
@@ -349,7 +349,7 @@ class SavedSearch {
       id: json['id'] as String,
       name: (json['name'] as String?) ?? '',
       criteriaJson: (json['criteriaJson'] as String?) ?? '{}',
-      createdAtUtc: tryDate('createdAtUtc'),
+      createdAtUtc: tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
       updatedAtUtc: tryDate('updatedAtUtc'),
       lastNotifiedAtUtc: tryDate('lastNotifiedAtUtc'),
     );

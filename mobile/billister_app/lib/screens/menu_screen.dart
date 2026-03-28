@@ -175,10 +175,8 @@ class MenuScreen extends StatelessWidget {
             _menuTile(
               context,
               icon: Icons.manage_search_outlined,
-              title: 'Gemte søgninger',
+              title: 'Søgeagenter',
               onTap: () async {
-                final ok = await _ensureLoggedIn(context);
-                if (!ok || !context.mounted) return;
                 await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => SavedSearchesScreen(api: api),
