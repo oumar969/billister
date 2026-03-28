@@ -155,6 +155,8 @@ if (app.Environment.IsDevelopment())
     app.UseCors("DevCors");
 }
 
+app.UseStaticFiles();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
