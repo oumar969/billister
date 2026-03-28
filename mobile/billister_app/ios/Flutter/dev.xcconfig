@@ -1,0 +1,7 @@
+#include "Generated.xcconfig"
+
+// Dev flavor configuration.
+// Use with: flutter run --flavor dev -t lib/main_dev.dart
+FLUTTER_TARGET=lib/main_dev.dart
+PRODUCT_BUNDLE_IDENTIFIER=com.billister.app.dev
+DISPLAY_NAME=Billister Dev
