@@ -17,14 +17,53 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   bool _loading = false;
   String? _error;
   List<FavoriteListing> _items = const <FavoriteListing>[];
+  String? _lastToken;
 
   @override
   void initState() {
     super.initState();
+    _lastToken = widget.api.token;
+    final token = widget.api.token;
+    if (token != null && token.isNotEmpty) {
+      _load();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant FavoritesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final token = widget.api.token;
+    final last = _lastToken;
+    if (token == last) return;
+
+    _lastToken = token;
+
+    // If user logged out, clear state.
+    if (token == null || token.isEmpty) {
+      setState(() {
+        _items = const <FavoriteListing>[];
+        _error = null;
+        _loading = false;
+      });
+      return;
+    }
+
+    // User just logged in (or token changed): refresh.
     _load();
   }
 
   Future<void> _load() async {
+    final token = widget.api.token;
+    if (token == null || token.isEmpty) {
+      setState(() {
+        _items = const <FavoriteListing>[];
+        _error = null;
+        _loading = false;
+      });
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;

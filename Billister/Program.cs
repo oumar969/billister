@@ -98,6 +98,45 @@ using (var scope = app.Services.CreateScope())
         db.Database.EnsureCreated();
     }
 
+    if (app.Environment.IsDevelopment() && db.Database.IsSqlite())
+    {
+        // Dev-only: if the local SQLite DB got out of sync with migrations,
+        // ensure newly added columns exist to avoid runtime 500s.
+        await using var conn = db.Database.GetDbConnection();
+        await conn.OpenAsync();
+
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info('CarListings');";
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            var hasSellerPhone = false;
+            var nameOrdinal = -1;
+            while (await reader.ReadAsync())
+            {
+                if (nameOrdinal == -1)
+                {
+                    nameOrdinal = reader.GetOrdinal("name");
+                }
+
+                var name = reader.GetString(nameOrdinal);
+                if (string.Equals(name, "SellerPhone", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasSellerPhone = true;
+                    break;
+                }
+            }
+
+            if (!hasSellerPhone)
+            {
+                await using var alter = conn.CreateCommand();
+                alter.CommandText = "ALTER TABLE CarListings ADD COLUMN SellerPhone TEXT NULL;";
+                await alter.ExecuteNonQueryAsync();
+                app.Logger.LogInformation("Dev DB repair: added missing column CarListings.SellerPhone");
+            }
+        }
+    }
+
     if (app.Environment.IsDevelopment())
     {
         var devAdminEmail = builder.Configuration["DevAdmin:Email"] ?? "admin@billister.local";

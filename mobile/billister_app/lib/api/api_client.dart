@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart';
 
 import 'criteria.dart';
 import 'models.dart';
+import 'io_shim.dart';
 
 class ApiException implements Exception {
   final int? statusCode;
@@ -38,12 +39,18 @@ class ApiClient {
       throw ApiException(
         'Forbindelsen til serveren tog for lang tid ($baseUrl). Er backenden startet?',
       );
-    } on SocketException {
-      throw ApiException(
-        'Kan ikke forbinde til serveren ($baseUrl). Start backenden og prøv igen.',
-      );
-    } on http.ClientException catch (e) {
-      throw ApiException('Netværksfejl: ${e.message}');
+    } catch (e) {
+      if (isSocketException(e)) {
+        throw ApiException(
+          'Kan ikke forbinde til serveren ($baseUrl). Start backenden og prøv igen.',
+        );
+      }
+
+      if (e is http.ClientException) {
+        throw ApiException('Netværksfejl: ${e.message}');
+      }
+
+      throw ApiException('Netværksfejl: $e');
     }
   }
 
@@ -378,17 +385,86 @@ class ApiClient {
   /// A longer timeout (60 s) is used because image transfers can be slow on
   /// mobile networks.
   Future<String> uploadImage(XFile imageFile) async {
-    final request = http.MultipartRequest(
-      'POST',
-      _uri('/api/images/upload'),
-    );
+    final request = http.MultipartRequest('POST', _uri('/api/images/upload'));
 
     if (token != null && token!.isNotEmpty) {
       request.headers['Authorization'] = 'Bearer $token';
     }
 
+    // `MultipartFile.fromPath` relies on `dart:io` and fails on Flutter Web.
+    // Using bytes works cross-platform (web + mobile + desktop).
+    final bytes = await imageFile.readAsBytes();
+    if (bytes.isEmpty) {
+      throw const ApiException('Billedfilen er tom');
+    }
+
+    MediaType inferMediaType() {
+      final name = imageFile.name.trim().toLowerCase();
+      if (name.endsWith('.jpg') || name.endsWith('.jpeg')) {
+        return MediaType('image', 'jpeg');
+      }
+      if (name.endsWith('.png')) return MediaType('image', 'png');
+      if (name.endsWith('.webp')) return MediaType('image', 'webp');
+      if (name.endsWith('.heic')) return MediaType('image', 'heic');
+      if (name.endsWith('.heif')) return MediaType('image', 'heif');
+
+      // Fall back to sniffing common signatures.
+      if (bytes.length >= 3 &&
+          bytes[0] == 0xFF &&
+          bytes[1] == 0xD8 &&
+          bytes[2] == 0xFF) {
+        return MediaType('image', 'jpeg');
+      }
+      if (bytes.length >= 8 &&
+          bytes[0] == 0x89 &&
+          bytes[1] == 0x50 &&
+          bytes[2] == 0x4E &&
+          bytes[3] == 0x47 &&
+          bytes[4] == 0x0D &&
+          bytes[5] == 0x0A &&
+          bytes[6] == 0x1A &&
+          bytes[7] == 0x0A) {
+        return MediaType('image', 'png');
+      }
+      if (bytes.length >= 12 &&
+          bytes[0] == 0x52 &&
+          bytes[1] == 0x49 &&
+          bytes[2] == 0x46 &&
+          bytes[3] == 0x46 &&
+          bytes[8] == 0x57 &&
+          bytes[9] == 0x45 &&
+          bytes[10] == 0x42 &&
+          bytes[11] == 0x50) {
+        return MediaType('image', 'webp');
+      }
+
+      return MediaType('image', 'jpeg');
+    }
+
+    String defaultFilenameFor(MediaType ct) {
+      final subtype = ct.subtype.toLowerCase();
+      return switch (subtype) {
+        'png' => 'image.png',
+        'webp' => 'image.webp',
+        'heic' => 'image.heic',
+        'heif' => 'image.heif',
+        _ => 'image.jpg',
+      };
+    }
+
+    final contentType = inferMediaType();
+    final originalName = imageFile.name.trim();
+    final filename = originalName.isEmpty
+        ? defaultFilenameFor(contentType)
+        : originalName;
+
     request.files.add(
-      await http.MultipartFile.fromPath('file', imageFile.path),
+      http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+        contentType: contentType,
+      ),
     );
 
     try {
@@ -410,6 +486,20 @@ class ApiClient {
         throw const ApiException('Unauthorized', statusCode: 401);
       }
 
+      if (response.statusCode == 400) {
+        String? error;
+        try {
+          final json = jsonDecode(response.body) as Map<String, dynamic>;
+          error = (json['error'] as String?)?.trim();
+        } catch (_) {
+          error = null;
+        }
+
+        if (error != null && error.isNotEmpty) {
+          throw ApiException('Billedupload fejlede: $error', statusCode: 400);
+        }
+      }
+
       throw ApiException(
         'Billedupload fejlede (${response.statusCode})',
         statusCode: response.statusCode,
@@ -418,12 +508,16 @@ class ApiClient {
       throw ApiException(
         'Billedupload tog for lang tid. Prøv igen eller tjek din forbindelse.',
       );
-    } on SocketException {
-      throw ApiException(
-        'Kan ikke forbinde til serveren ($baseUrl). Start backenden og prøv igen.',
-      );
-    } on http.ClientException catch (e) {
-      throw ApiException('Netværksfejl: ${e.message}');
+    } catch (e) {
+      if (isSocketException(e)) {
+        throw ApiException(
+          'Kan ikke forbinde til serveren ($baseUrl). Start backenden og prøv igen.',
+        );
+      }
+      if (e is http.ClientException) {
+        throw ApiException('Netværksfejl: ${e.message}');
+      }
+      rethrow;
     }
   }
 
