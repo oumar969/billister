@@ -53,6 +53,7 @@ public sealed class ListingsController : ControllerBase
         };
 
         IQueryable<CarListing> q = _db.CarListings.AsNoTracking().Include(x => x.Images);
+        q = q.Where(x => !x.IsSold);
         q = ApplyCriteria(q, criteria);
 
         var total = await q.CountAsync(ct);
@@ -92,6 +93,7 @@ public sealed class ListingsController : ControllerBase
         var pageSize = request.PageSize is < 1 or > 100 ? 20 : request.PageSize;
 
         IQueryable<CarListing> q = _db.CarListings.AsNoTracking().Include(x => x.Images);
+        q = q.Where(x => !x.IsSold);
         q = ApplyCriteria(q, request.Criteria ?? new ListingFilterCriteria());
 
         var total = await q.CountAsync(ct);
@@ -169,6 +171,7 @@ public sealed class ListingsController : ControllerBase
             extraAttributes = JsonSerializer.Deserialize<Dictionary<string, object?>>(listing.ExtraAttributesJson) ?? new Dictionary<string, object?>(),
             listing.ViewCount,
             listing.FavoriteCount,
+            listing.IsSold,
             listing.CreatedAtUtc,
             listing.UpdatedAtUtc,
             images = listing.Images.OrderBy(i => i.SortOrder).Select(i => new { i.Url, i.SortOrder, i.Width, i.Height })
@@ -275,7 +278,9 @@ public sealed class ListingsController : ControllerBase
                 x.City,
                 x.ViewCount,
                 x.FavoriteCount,
+                x.IsSold,
                 x.CreatedAtUtc,
+                x.UpdatedAtUtc,
                 images = x.Images.OrderBy(i => i.SortOrder).Select(i => new { i.Url, i.SortOrder, i.Width, i.Height })
             })
             .ToListAsync(ct);
@@ -296,6 +301,7 @@ public sealed class ListingsController : ControllerBase
         if (req.MileageKm is not null) listing.MileageKm = req.MileageKm;
         if (req.Title is not null) listing.Title = req.Title;
         if (req.Description is not null) listing.Description = req.Description;
+        if (req.IsSold is not null) listing.IsSold = req.IsSold.Value;
 
         if (req.Features is not null)
         {
@@ -374,6 +380,7 @@ public sealed class ListingsController : ControllerBase
 
         var items = await _db.CarListings
             .AsNoTracking()
+            .Where(x => !x.IsSold)
             .Where(x => x.Latitude != null && x.Longitude != null)
             .Where(x => x.Latitude >= lat - degreeRadius && x.Latitude <= lat + degreeRadius)
             .Where(x => x.Longitude >= lng - degreeRadius && x.Longitude <= lng + degreeRadius)
@@ -517,12 +524,12 @@ public sealed class ListingsController : ControllerBase
     private static IOrderedQueryable<CarListing> ApplySort(IQueryable<CarListing> q, string? sortBy) =>
         sortBy switch
         {
-            "price_asc"    => q.OrderBy(x => x.PriceDkk),
-            "price_desc"   => q.OrderByDescending(x => x.PriceDkk),
-            "mileage_asc"  => q.OrderBy(x => x.MileageKm),
+            "price_asc" => q.OrderBy(x => x.PriceDkk),
+            "price_desc" => q.OrderByDescending(x => x.PriceDkk),
+            "mileage_asc" => q.OrderBy(x => x.MileageKm),
             "mileage_desc" => q.OrderByDescending(x => x.MileageKm),
-            "year_desc"    => q.OrderByDescending(x => x.Year),
-            "year_asc"     => q.OrderBy(x => x.Year),
-            _              => q.OrderByDescending(x => x.CreatedAtUtc),
+            "year_desc" => q.OrderByDescending(x => x.Year),
+            "year_asc" => q.OrderBy(x => x.Year),
+            _ => q.OrderByDescending(x => x.CreatedAtUtc),
         };
 }

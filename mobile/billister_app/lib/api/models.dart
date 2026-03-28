@@ -43,6 +43,11 @@ class ListingSummary {
   final String transmission;
   final int? electricRangeKm;
   final String? city;
+  final int viewCount;
+  final int favoriteCount;
+  final bool isSold;
+  final DateTime? createdAtUtc;
+  final DateTime? updatedAtUtc;
   final List<ListingImage> images;
 
   const ListingSummary({
@@ -57,11 +62,24 @@ class ListingSummary {
     required this.transmission,
     required this.electricRangeKm,
     required this.city,
+    required this.viewCount,
+    required this.favoriteCount,
+    required this.isSold,
+    required this.createdAtUtc,
+    required this.updatedAtUtc,
     required this.images,
   });
 
   factory ListingSummary.fromJson(Map<String, dynamic> json) {
     final imagesJson = json['images'] as List<dynamic>?;
+
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String) {
+        return DateTime.tryParse(v);
+      }
+      return null;
+    }
 
     return ListingSummary(
       id: json['id'] as String,
@@ -75,6 +93,11 @@ class ListingSummary {
       transmission: (json['transmission'] as String?) ?? '',
       electricRangeKm: (json['electricRangeKm'] as num?)?.toInt(),
       city: json['city'] as String?,
+      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
+      favoriteCount: (json['favoriteCount'] as num?)?.toInt() ?? 0,
+      isSold: (json['isSold'] as bool?) ?? false,
+      createdAtUtc: tryDate('createdAtUtc'),
+      updatedAtUtc: tryDate('updatedAtUtc'),
       images:
           imagesJson
               ?.map((e) => ListingImage.fromJson(e as Map<String, dynamic>))
@@ -87,6 +110,32 @@ class ListingSummary {
     final v = variant;
     if (v == null || v.trim().isEmpty) return '$make $model';
     return '$make $model $v';
+  }
+}
+
+class SellerInquirySummary {
+  final String listingId;
+  final int threadCount;
+  final DateTime? lastInquiryAtUtc;
+
+  const SellerInquirySummary({
+    required this.listingId,
+    required this.threadCount,
+    required this.lastInquiryAtUtc,
+  });
+
+  factory SellerInquirySummary.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return SellerInquirySummary(
+      listingId: (json['listingId'] as String?) ?? '',
+      threadCount: (json['threadCount'] as num?)?.toInt() ?? 0,
+      lastInquiryAtUtc: tryDate('lastInquiryAtUtc'),
+    );
   }
 }
 
@@ -151,6 +200,7 @@ class ListingDetails {
   final Map<String, dynamic> extraAttributes;
   final int viewCount;
   final int favoriteCount;
+  final bool isSold;
   final List<ListingImage> images;
 
   const ListingDetails({
@@ -185,6 +235,7 @@ class ListingDetails {
     required this.extraAttributes,
     required this.viewCount,
     required this.favoriteCount,
+    required this.isSold,
     required this.images,
   });
 
@@ -226,6 +277,7 @@ class ListingDetails {
       extraAttributes: extraJson ?? const <String, dynamic>{},
       viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
       favoriteCount: (json['favoriteCount'] as num?)?.toInt() ?? 0,
+      isSold: (json['isSold'] as bool?) ?? false,
       images:
           imagesJson
               ?.map((e) => ListingImage.fromJson(e as Map<String, dynamic>))
@@ -360,7 +412,8 @@ class SavedSearch {
       id: json['id'] as String,
       name: (json['name'] as String?) ?? '',
       criteriaJson: (json['criteriaJson'] as String?) ?? '{}',
-      createdAtUtc: tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+      createdAtUtc:
+          tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
       updatedAtUtc: tryDate('updatedAtUtc'),
     );
   }

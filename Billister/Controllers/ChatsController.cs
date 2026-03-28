@@ -55,6 +55,30 @@ public sealed class ChatsController : ControllerBase
         return Ok(new { thread.Id, thread.FirebaseThreadPath });
     }
 
+    /// <summary>
+    /// Seller helper: returns inquiry counts per listing for the current user.
+    /// "Inquiry" is a ChatThread record (messages live in Firebase).
+    /// </summary>
+    [HttpGet("seller-inquiries")]
+    public async Task<ActionResult<object>> SellerInquiries(CancellationToken ct)
+    {
+        var sellerId = GetUserId();
+
+        var items = await _db.ChatThreads
+            .AsNoTracking()
+            .Where(t => t.SellerId == sellerId)
+            .GroupBy(t => t.ListingId)
+            .Select(g => new
+            {
+                listingId = g.Key,
+                threadCount = g.Count(),
+                lastInquiryAtUtc = g.Max(x => x.CreatedAtUtc)
+            })
+            .ToListAsync(ct);
+
+        return Ok(new { items });
+    }
+
     private Guid GetUserId()
     {
         var sub = User.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -51,6 +51,7 @@ public static class ApiDtos
             int? MileageKm,
             string? Title,
             string? Description,
+            bool? IsSold,
             List<string>? Features,
             Dictionary<string, object?>? ExtraAttributes,
             List<ListingImageDto>? Images);

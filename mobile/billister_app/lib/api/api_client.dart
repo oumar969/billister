@@ -320,6 +320,97 @@ class ApiClient {
     );
   }
 
+  Future<List<SellerInquirySummary>> fetchSellerInquiries() async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/chats/seller-inquiries'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final items = json['items'] as List<dynamic>?;
+      if (items == null) return const <SellerInquirySummary>[];
+      return items
+          .map((e) => SellerInquirySummary.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false);
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Fetch inquiries failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> updateListing(
+    String listingId, {
+    num? priceDkk,
+    int? mileageKm,
+    String? title,
+    String? description,
+    bool? isSold,
+  }) async {
+    final res = await _send(
+      () => _http.patch(
+        _uri('/api/listings/$listingId'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({
+          if (priceDkk != null) 'priceDkk': priceDkk,
+          if (mileageKm != null) 'mileageKm': mileageKm,
+          if (title != null) 'title': title,
+          if (description != null) 'description': description,
+          if (isSold != null) 'isSold': isSold,
+        }),
+      ),
+    );
+
+    if (res.statusCode == 204) return;
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+    if (res.statusCode == 403) {
+      throw const ApiException('Forbidden', statusCode: 403);
+    }
+    if (res.statusCode == 404) {
+      throw const ApiException('Listing not found', statusCode: 404);
+    }
+
+    throw ApiException(
+      'Update listing failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> deleteListing(String listingId) async {
+    final res = await _send(
+      () => _http.delete(
+        _uri('/api/listings/$listingId'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 204) return;
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+    if (res.statusCode == 403) {
+      throw const ApiException('Forbidden', statusCode: 403);
+    }
+    if (res.statusCode == 404) {
+      throw const ApiException('Listing not found', statusCode: 404);
+    }
+
+    throw ApiException(
+      'Delete listing failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
   Future<String> createListing({
     required String make,
     required String model,

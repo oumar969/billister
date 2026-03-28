@@ -91,7 +91,16 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<BillisterDbContext>();
     if (db.Database.GetMigrations().Any())
     {
-        db.Database.Migrate();
+        try
+        {
+            db.Database.Migrate();
+        }
+        catch (Exception ex) when (app.Environment.IsDevelopment() && db.Database.IsSqlite())
+        {
+            // Dev-friendly: local SQLite can get out of sync with migrations (tables already exist).
+            // We'll log and rely on the dev repair block below to add missing columns needed at runtime.
+            app.Logger.LogWarning(ex, "Dev DB migrate failed; continuing with best-effort schema repair");
+        }
     }
     else
     {
@@ -111,6 +120,7 @@ using (var scope = app.Services.CreateScope())
             await using var reader = await cmd.ExecuteReaderAsync();
 
             var hasSellerPhone = false;
+            var hasIsSold = false;
             var nameOrdinal = -1;
             while (await reader.ReadAsync())
             {
@@ -123,7 +133,12 @@ using (var scope = app.Services.CreateScope())
                 if (string.Equals(name, "SellerPhone", StringComparison.OrdinalIgnoreCase))
                 {
                     hasSellerPhone = true;
-                    break;
+                    continue;
+                }
+
+                if (string.Equals(name, "IsSold", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasIsSold = true;
                 }
             }
 
@@ -133,6 +148,14 @@ using (var scope = app.Services.CreateScope())
                 alter.CommandText = "ALTER TABLE CarListings ADD COLUMN SellerPhone TEXT NULL;";
                 await alter.ExecuteNonQueryAsync();
                 app.Logger.LogInformation("Dev DB repair: added missing column CarListings.SellerPhone");
+            }
+
+            if (!hasIsSold)
+            {
+                await using var alter = conn.CreateCommand();
+                alter.CommandText = "ALTER TABLE CarListings ADD COLUMN IsSold INTEGER NOT NULL DEFAULT 0;";
+                await alter.ExecuteNonQueryAsync();
+                app.Logger.LogInformation("Dev DB repair: added missing column CarListings.IsSold");
             }
         }
     }

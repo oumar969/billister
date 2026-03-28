@@ -58,6 +58,8 @@ public sealed class CarListing
     public long ViewCount { get; set; }
     public long FavoriteCount { get; set; }
 
+    public bool IsSold { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }
 
