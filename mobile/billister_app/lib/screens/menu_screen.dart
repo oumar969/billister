@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import 'login_screen.dart';
 import 'my_listings_screen.dart';
+import 'saved_searches_screen.dart';
 import 'sell_car_screen.dart';
 
 class MenuScreen extends StatelessWidget {
@@ -174,8 +175,14 @@ class MenuScreen extends StatelessWidget {
             _menuTile(
               context,
               icon: Icons.manage_search_outlined,
-              title: 'Seneste søgninger',
-              onTap: () => _comingSoon(context),
+              title: 'Søgeagenter',
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SavedSearchesScreen(api: api),
+                  ),
+                );
+              },
             ),
             _menuTile(
               context,

@@ -320,3 +320,35 @@ class VehicleModel {
     );
   }
 }
+
+class SavedSearch {
+  final String id;
+  final String name;
+  final String criteriaJson;
+  final DateTime createdAtUtc;
+  final DateTime? updatedAtUtc;
+
+  const SavedSearch({
+    required this.id,
+    required this.name,
+    required this.criteriaJson,
+    required this.createdAtUtc,
+    this.updatedAtUtc,
+  });
+
+  factory SavedSearch.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return SavedSearch(
+      id: json['id'] as String,
+      name: (json['name'] as String?) ?? '',
+      criteriaJson: (json['criteriaJson'] as String?) ?? '{}',
+      createdAtUtc: tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAtUtc: tryDate('updatedAtUtc'),
+    );
+  }
+}
