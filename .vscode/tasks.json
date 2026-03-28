@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend: run (x64 dotnet)",
+      "type": "shell",
+      "command": "C:\\Program Files\\dotnet\\dotnet.exe",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}\\Billister\\Billister.csproj"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "backend: stop (free ports 5012/7012)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\stop-backend.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "backend: build (x64 dotnet)",
+      "type": "shell",
+      "command": "C:\\Program Files\\dotnet\\dotnet.exe",
+      "args": [
+        "build",
+        "${workspaceFolder}\\Billister\\Billister.csproj"
+      ],
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

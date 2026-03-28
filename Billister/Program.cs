@@ -13,6 +13,22 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        "DevCors",
+        policy =>
+            policy
+                .SetIsOriginAllowed(origin =>
+                {
+                    if (string.IsNullOrWhiteSpace(origin)) return false;
+                    if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+                    return uri.Host is "localhost" or "127.0.0.1";
+                })
+                .AllowAnyHeader()
+                .AllowAnyMethod());
+});
+
 builder.Services.AddDbContext<BillisterDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("Default")
@@ -33,7 +49,8 @@ builder.Services
     })
     .AddRoles<ApplicationRole>()
     .AddEntityFrameworkStores<BillisterDbContext>()
-    .AddSignInManager<SignInManager<ApplicationUser>>();
+    .AddSignInManager<SignInManager<ApplicationUser>>()
+    .AddDefaultTokenProviders();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"];
@@ -80,15 +97,68 @@ using (var scope = app.Services.CreateScope())
     {
         db.Database.EnsureCreated();
     }
+
+    if (app.Environment.IsDevelopment())
+    {
+        var devAdminEmail = builder.Configuration["DevAdmin:Email"] ?? "admin@billister.local";
+        var devAdminPassword = builder.Configuration["DevAdmin:Password"] ?? "Admin1234";
+
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        if (!await roleManager.RoleExistsAsync("Admin"))
+        {
+            await roleManager.CreateAsync(new ApplicationRole { Name = "Admin" });
+        }
+
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var adminUser = await userManager.FindByEmailAsync(devAdminEmail);
+        if (adminUser is null)
+        {
+            adminUser = new ApplicationUser
+            {
+                UserName = devAdminEmail,
+                Email = devAdminEmail,
+                EmailConfirmed = true
+            };
+
+            var createRes = await userManager.CreateAsync(adminUser, devAdminPassword);
+            if (!createRes.Succeeded)
+            {
+                var errors = string.Join("; ", createRes.Errors.Select(e => e.Description));
+                app.Logger.LogWarning("Dev admin user was not created: {Errors}", errors);
+            }
+        }
+
+        if (adminUser is not null)
+        {
+            var resetToken = await userManager.GeneratePasswordResetTokenAsync(adminUser);
+            var resetRes = await userManager.ResetPasswordAsync(adminUser, resetToken, devAdminPassword);
+            if (!resetRes.Succeeded)
+            {
+                var errors = string.Join("; ", resetRes.Errors.Select(e => e.Description));
+                app.Logger.LogWarning("Dev admin password was not updated: {Errors}", errors);
+            }
+
+            var isAdmin = await userManager.IsInRoleAsync(adminUser, "Admin");
+            if (!isAdmin)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+        }
+    }
 }
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    app.UseCors("DevCors");
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
