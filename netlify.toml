@@ -1,0 +1,8 @@
+[build]
+  command = "cd mobile/billister_app && flutter build web --release"
+  publish = "mobile/billister_app/build/web"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
