@@ -21,6 +21,16 @@ class ListingImage {
   }
 }
 
+/// Lightweight DTO used when submitting images as part of a new/updated listing.
+class ListingImageCreate {
+  final String url;
+  final int sortOrder;
+
+  const ListingImageCreate({required this.url, required this.sortOrder});
+
+  Map<String, dynamic> toJson() => {'url': url, 'sortOrder': sortOrder};
+}
+
 class ListingSummary {
   final String id;
   final String make;
@@ -320,6 +330,38 @@ class VehicleModel {
       id: json['id'] as String,
       makeId: json['makeId'] as String,
       name: (json['name'] as String?) ?? '',
+    );
+  }
+}
+
+class SavedSearch {
+  final String id;
+  final String name;
+  final String criteriaJson;
+  final DateTime createdAtUtc;
+  final DateTime? updatedAtUtc;
+
+  const SavedSearch({
+    required this.id,
+    required this.name,
+    required this.criteriaJson,
+    required this.createdAtUtc,
+    this.updatedAtUtc,
+  });
+
+  factory SavedSearch.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return SavedSearch(
+      id: json['id'] as String,
+      name: (json['name'] as String?) ?? '',
+      criteriaJson: (json['criteriaJson'] as String?) ?? '{}',
+      createdAtUtc: tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAtUtc: tryDate('updatedAtUtc'),
     );
   }
 }

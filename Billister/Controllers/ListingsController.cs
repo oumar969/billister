@@ -48,7 +48,8 @@ public sealed class ListingsController : ControllerBase
             RangeMax = query.RangeMax,
             HasTowHook = query.HasTowHook,
             HasFourWheelDrive = query.HasFourWheelDrive,
-            RequiredFeatures = string.IsNullOrWhiteSpace(query.Feature) ? null : new List<string> { query.Feature }
+            RequiredFeatures = string.IsNullOrWhiteSpace(query.Feature) ? null : new List<string> { query.Feature },
+            SortBy = query.SortBy
         };
 
         IQueryable<CarListing> q = _db.CarListings.AsNoTracking().Include(x => x.Images);
@@ -56,8 +57,7 @@ public sealed class ListingsController : ControllerBase
 
         var total = await q.CountAsync(ct);
 
-        var items = await q
-            .OrderByDescending(x => x.CreatedAtUtc)
+        var items = await ApplySort(q, criteria.SortBy)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(x => new
@@ -95,8 +95,7 @@ public sealed class ListingsController : ControllerBase
         q = ApplyCriteria(q, request.Criteria ?? new ListingFilterCriteria());
 
         var total = await q.CountAsync(ct);
-        var items = await q
-            .OrderByDescending(x => x.CreatedAtUtc)
+        var items = await ApplySort(q, request.Criteria?.SortBy)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(x => new
@@ -514,4 +513,16 @@ public sealed class ListingsController : ControllerBase
 
         return q;
     }
+
+    private static IOrderedQueryable<CarListing> ApplySort(IQueryable<CarListing> q, string? sortBy) =>
+        sortBy switch
+        {
+            "price_asc"    => q.OrderBy(x => x.PriceDkk),
+            "price_desc"   => q.OrderByDescending(x => x.PriceDkk),
+            "mileage_asc"  => q.OrderBy(x => x.MileageKm),
+            "mileage_desc" => q.OrderByDescending(x => x.MileageKm),
+            "year_desc"    => q.OrderByDescending(x => x.Year),
+            "year_asc"     => q.OrderBy(x => x.Year),
+            _              => q.OrderByDescending(x => x.CreatedAtUtc),
+        };
 }

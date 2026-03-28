@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
@@ -41,7 +42,19 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Annonce')),
+      appBar: AppBar(
+        title: const Text('Annonce'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Del annonce',
+            onPressed: () {
+              final link = 'billister://listings/${widget.listingId}';
+              SharePlus.instance.share(ShareParams(uri: Uri.parse(link)));
+            },
+          ),
+        ],
+      ),
       body: FutureBuilder<ListingDetails>(
         future: _future,
         builder: (context, snapshot) {

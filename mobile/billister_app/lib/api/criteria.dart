@@ -18,7 +18,22 @@ class ListingFilterCriteria {
   final num? priceMin;
   final num? priceMax;
 
+  final int? horsepowerMin;
+  final int? horsepowerMax;
+
+  final int? kilowattsMin;
+  final int? kilowattsMax;
+
+  final int? rangeMin;
+  final int? rangeMax;
+
+  final bool? hasFourWheelDrive;
+  final bool? hasTowHook;
+
   final List<String>? requiredFeatures;
+
+  // Sorting: newest (default), price_asc, price_desc, mileage_asc, mileage_desc, year_desc, year_asc
+  final String? sortBy;
 
   const ListingFilterCriteria({
     this.q,
@@ -34,7 +49,16 @@ class ListingFilterCriteria {
     this.mileageMax,
     this.priceMin,
     this.priceMax,
+    this.horsepowerMin,
+    this.horsepowerMax,
+    this.kilowattsMin,
+    this.kilowattsMax,
+    this.rangeMin,
+    this.rangeMax,
+    this.hasFourWheelDrive,
+    this.hasTowHook,
     this.requiredFeatures,
+    this.sortBy,
   });
 
   bool get isEmpty {
@@ -51,6 +75,16 @@ class ListingFilterCriteria {
         mileageMax == null &&
         priceMin == null &&
         priceMax == null &&
+        (requiredFeatures == null || requiredFeatures!.isEmpty) &&
+        sortBy == null;
+        horsepowerMin == null &&
+        horsepowerMax == null &&
+        kilowattsMin == null &&
+        kilowattsMax == null &&
+        rangeMin == null &&
+        rangeMax == null &&
+        hasFourWheelDrive == null &&
+        hasTowHook == null &&
         (requiredFeatures == null || requiredFeatures!.isEmpty);
   }
 
@@ -105,8 +139,22 @@ class ListingFilterCriteria {
     if (priceMin != null) map['priceMin'] = priceMin;
     if (priceMax != null) map['priceMax'] = priceMax;
 
+    if (horsepowerMin != null) map['horsepowerMin'] = horsepowerMin;
+    if (horsepowerMax != null) map['horsepowerMax'] = horsepowerMax;
+
+    if (kilowattsMin != null) map['kilowattsMin'] = kilowattsMin;
+    if (kilowattsMax != null) map['kilowattsMax'] = kilowattsMax;
+
+    if (rangeMin != null) map['rangeMin'] = rangeMin;
+    if (rangeMax != null) map['rangeMax'] = rangeMax;
+
+    if (hasFourWheelDrive != null) map['hasFourWheelDrive'] = hasFourWheelDrive;
+    if (hasTowHook != null) map['hasTowHook'] = hasTowHook;
+
     final features = _normalizeList(requiredFeatures);
     if (features != null) map['requiredFeatures'] = features;
+
+    if (sortBy != null) map['sortBy'] = sortBy;
 
     return map;
   }
