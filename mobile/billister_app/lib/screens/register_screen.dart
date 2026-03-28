@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import 'verify_email_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   final ApiClient api;
@@ -49,15 +50,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      // Show success message and navigate back
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registrering succesfuld! Du er nu logget ind.'),
-          duration: Duration(seconds: 2),
+      // Navigate to verify email screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => VerifyEmailScreen(api: widget.api),
         ),
       );
-
-      Navigator.of(context).pop(true);
     } catch (e) {
       setState(() {
         _error = e.toString();

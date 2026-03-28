@@ -12,6 +12,14 @@ public static class ApiDtos
             UserDto User);
         public sealed record RefreshTokenRequest(string RefreshToken);
         public sealed record UserDto(Guid Id, string Email, string Username, List<string> Roles);
+
+        // Email Verification
+        public sealed record VerifyEmailRequest(string Code);
+        public sealed record ResendVerificationRequest(string Email);
+
+        // Password Reset
+        public sealed record ForgotPasswordRequest(string Email);
+        public sealed record ResetPasswordRequest(string Token, string NewPassword);
     }
 
     public static class Listings

@@ -1,30 +1,28 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
-import 'register_screen.dart';
-import 'forgot_password_screen.dart';
+import 'reset_password_screen.dart';
 
-class LoginScreen extends StatefulWidget {
+class ForgotPasswordScreen extends StatefulWidget {
   final ApiClient api;
 
-  const LoginScreen({super.key, required this.api});
+  const ForgotPasswordScreen({super.key, required this.api});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _pwCtrl = TextEditingController();
 
   bool _isSubmitting = false;
   String? _error;
+  bool _codeSent = false;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
-    _pwCtrl.dispose();
     super.dispose();
   }
 
@@ -37,13 +35,23 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await widget.api.login(
-        email: _emailCtrl.text.trim(),
-        password: _pwCtrl.text,
-      );
+      await widget.api.forgotPassword(_emailCtrl.text.trim());
 
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+
+      setState(() {
+        _codeSent = true;
+      });
+
+      // Show info that they should check their email
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tjek din email for et link til at nulstille din adgangskode',
+          ),
+          duration: Duration(seconds: 5),
+        ),
+      );
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -57,24 +65,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _goToRegister() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => RegisterScreen(api: widget.api)),
-    );
-  }
-
-  void _goToForgotPassword() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ForgotPasswordScreen(api: widget.api),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    if (_codeSent) {
+      return ResetPasswordScreen(api: widget.api);
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: const Text('Glemt Adgangskode')),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -85,9 +83,15 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 24),
                 Text(
-                  'Velkommen til Billister',
+                  'Nulstil Adgangskode',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Indtast din email-adresse, og vi sender dig et link til at nulstille din adgangskode.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 32),
                 TextFormField(
@@ -103,28 +107,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (!value.contains('@')) return 'Ugyldigt email format';
                     return null;
                   },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _pwCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Adgangskode',
-                    border: OutlineInputBorder(),
-                  ),
-                  obscureText: true,
-                  validator: (v) {
-                    final value = v ?? '';
-                    if (value.isEmpty) return 'Adgangskode er påkrævet';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _goToForgotPassword,
-                    child: const Text('Glemt adgangskode?'),
-                  ),
                 ),
                 const SizedBox(height: 16),
                 if (_error != null) ...[
@@ -148,21 +130,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Text(
-                      _isSubmitting ? 'Logger ind…' : 'Login',
+                      _isSubmitting ? 'Sender…' : 'Send Nulstil Link',
                       style: const TextStyle(fontSize: 16),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Har du ikke en konto?'),
-                    TextButton(
-                      onPressed: _goToRegister,
-                      child: const Text('Registrer dig'),
-                    ),
-                  ],
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Tilbage til login'),
                 ),
               ],
             ),

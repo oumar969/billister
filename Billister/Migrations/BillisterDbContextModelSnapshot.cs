@@ -97,6 +97,12 @@ namespace Billister.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("VerificationCode")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("VerificationCodeExpiry")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")

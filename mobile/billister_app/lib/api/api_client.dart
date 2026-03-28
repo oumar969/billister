@@ -109,7 +109,7 @@ class ApiClient {
       final normalized = base64Url.normalize(payload);
       final bytes = base64Url.decode(normalized);
       final json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-      
+
       final exp = json['exp'] as int?;
       if (exp == null) return null;
 
@@ -121,7 +121,7 @@ class ApiClient {
 
   bool _shouldRefreshToken() {
     if (token == null || refreshToken == null) return false;
-    
+
     final expiresAt = _parseJwtExpiration(token!);
     if (expiresAt == null) return false;
 
@@ -188,7 +188,9 @@ class ApiClient {
       final savedRefreshToken = _prefs.getString(_refreshTokenKey);
       final savedUserJson = _prefs.getString(_userKey);
 
-      if (savedToken != null && savedRefreshToken != null && savedUserJson != null) {
+      if (savedToken != null &&
+          savedRefreshToken != null &&
+          savedUserJson != null) {
         token = savedToken;
         refreshToken = savedRefreshToken;
         currentUser = User.fromJson(
@@ -283,6 +285,102 @@ class ApiClient {
     final error =
         json['error'] as String? ??
         'Registrering mislykkedes (${res.statusCode})';
+    throw ApiException(error, statusCode: res.statusCode);
+  }
+
+  Future<void> verifyEmail(String code) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/verify-email'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({'code': code}),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) return;
+
+    if (res.statusCode == 400) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final error = json['error'] as String? ?? 'Verifikation mislykkedes';
+      throw ApiException(error, statusCode: 400);
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    final error =
+        json['error'] as String? ??
+        'Verifikation mislykkedes (${res.statusCode})';
+    throw ApiException(error, statusCode: res.statusCode);
+  }
+
+  Future<void> resendVerificationEmail(String email) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/resend-verification'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({'email': email}),
+      ),
+    );
+
+    if (res.statusCode == 200) return;
+
+    if (res.statusCode == 400) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final error = json['error'] as String? ?? 'Gensendelse mislykkedes';
+      throw ApiException(error, statusCode: 400);
+    }
+
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    final error =
+        json['error'] as String? ??
+        'Gensendelse mislykkedes (${res.statusCode})';
+    throw ApiException(error, statusCode: res.statusCode);
+  }
+
+  Future<void> forgotPassword(String email) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/forgot-password'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({'email': email}),
+      ),
+    );
+
+    if (res.statusCode == 200) return;
+
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    final error =
+        json['error'] as String? ??
+        'Anmodning om nulstilling af adgangskode mislykkedes (${res.statusCode})';
+    throw ApiException(error, statusCode: res.statusCode);
+  }
+
+  Future<void> resetPassword(String token, String newPassword) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/reset-password'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({'token': token, 'newPassword': newPassword}),
+      ),
+    );
+
+    if (res.statusCode == 200) return;
+
+    if (res.statusCode == 400) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final error =
+          json['error'] as String? ?? 'Nulstilling af adgangskode mislykkedes';
+      throw ApiException(error, statusCode: 400);
+    }
+
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    final error =
+        json['error'] as String? ??
+        'Nulstilling af adgangskode mislykkedes (${res.statusCode})';
     throw ApiException(error, statusCode: res.statusCode);
   }
 
@@ -962,7 +1060,9 @@ class ApiClient {
       () => _http.delete(
         _uri('/api/saved-searches/$id'),
         headers: _jsonHeaders(includeAuth: true),
-      ),      ensureValidToken: true,    );
+      ),
+      ensureValidToken: true,
+    );
 
     if (res.statusCode == 204) return;
     if (res.statusCode == 401) {

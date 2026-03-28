@@ -82,6 +82,7 @@ builder.Services.AddScoped<IAiDescriptionService, AiDescriptionService>();
 builder.Services.AddScoped<IMotorregisterService, MotorregisterService>();
 builder.Services.AddScoped<ISavedSearchNotifier, SavedSearchNotifier>();
 builder.Services.AddScoped<IInputValidationService, InputValidationService>();
+builder.Services.AddScoped<IEmailService, MockEmailService>();
 
 var app = builder.Build();
 
@@ -157,6 +158,52 @@ using (var scope = app.Services.CreateScope())
                 alter.CommandText = "ALTER TABLE CarListings ADD COLUMN IsSold INTEGER NOT NULL DEFAULT 0;";
                 await alter.ExecuteNonQueryAsync();
                 app.Logger.LogInformation("Dev DB repair: added missing column CarListings.IsSold");
+            }
+        }
+
+        // Check AspNetUsers table for verification code columns
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info('AspNetUsers');";
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            var hasVerificationCode = false;
+            var hasVerificationCodeExpiry = false;
+            var nameOrdinal = -1;
+            while (await reader.ReadAsync())
+            {
+                if (nameOrdinal == -1)
+                {
+                    nameOrdinal = reader.GetOrdinal("name");
+                }
+
+                var name = reader.GetString(nameOrdinal);
+                if (string.Equals(name, "VerificationCode", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasVerificationCode = true;
+                    continue;
+                }
+
+                if (string.Equals(name, "VerificationCodeExpiry", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasVerificationCodeExpiry = true;
+                }
+            }
+
+            if (!hasVerificationCode)
+            {
+                await using var alter = conn.CreateCommand();
+                alter.CommandText = "ALTER TABLE AspNetUsers ADD COLUMN VerificationCode TEXT NULL;";
+                await alter.ExecuteNonQueryAsync();
+                app.Logger.LogInformation("Dev DB repair: added missing column AspNetUsers.VerificationCode");
+            }
+
+            if (!hasVerificationCodeExpiry)
+            {
+                await using var alter = conn.CreateCommand();
+                alter.CommandText = "ALTER TABLE AspNetUsers ADD COLUMN VerificationCodeExpiry TEXT NULL;";
+                await alter.ExecuteNonQueryAsync();
+                app.Logger.LogInformation("Dev DB repair: added missing column AspNetUsers.VerificationCodeExpiry");
             }
         }
     }

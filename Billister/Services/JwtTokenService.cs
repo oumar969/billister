@@ -13,6 +13,9 @@ public interface IJwtTokenService
     string CreateAccessToken(ApplicationUser user, IList<string> roles);
     string CreateRefreshToken(ApplicationUser user, IList<string> roles);
     (bool isValid, string? userId, string? email, string? username, IList<string>? roles) ValidateRefreshToken(string token);
+    string CreateVerificationCode();
+    string CreatePasswordResetToken(ApplicationUser user);
+    (bool isValid, string? userId) ValidatePasswordResetToken(string token);
 }
 
 public sealed class JwtTokenService : IJwtTokenService
@@ -125,6 +128,71 @@ public sealed class JwtTokenService : IJwtTokenService
         catch
         {
             return (false, null, null, null, null);
+        }
+    }
+
+    public string CreateVerificationCode()
+    {
+        // Generate a 6-digit verification code
+        var random = new Random();
+        return random.Next(100000, 999999).ToString();
+    }
+
+    public string CreatePasswordResetToken(ApplicationUser user)
+    {
+        var (issuer, audience, key) = GetJwtConfig();
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new("purpose", "password-reset"),
+        };
+
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(1), // 1 hour expiration for password reset
+            signingCredentials: creds);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public (bool isValid, string? userId) ValidatePasswordResetToken(string token)
+    {
+        try
+        {
+            var (issuer, audience, key) = GetJwtConfig();
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = signingKey,
+                ValidateIssuer = true,
+                ValidIssuer = issuer,
+                ValidateAudience = true,
+                ValidAudience = audience,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out SecurityToken validatedToken);
+
+            var purpose = principal.FindFirst("purpose")?.Value;
+            if (purpose != "password-reset")
+            {
+                return (false, null);
+            }
+
+            var userId = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            return (true, userId);
+        }
+        catch
+        {
+            return (false, null);
         }
     }
 }
