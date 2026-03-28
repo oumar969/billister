@@ -43,4 +43,7 @@ public sealed record ListingFilterCriteria
 
     // Arbitrary extra filters. Values can be string/number/bool/array of those.
     public Dictionary<string, JsonElement>? Extra { get; init; }
+
+    // Sorting: newest (default), price_asc, price_desc, mileage_asc, mileage_desc, year_desc, year_asc
+    public string? SortBy { get; init; }
 }

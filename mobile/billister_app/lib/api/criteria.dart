@@ -32,6 +32,9 @@ class ListingFilterCriteria {
 
   final List<String>? requiredFeatures;
 
+  // Sorting: newest (default), price_asc, price_desc, mileage_asc, mileage_desc, year_desc, year_asc
+  final String? sortBy;
+
   const ListingFilterCriteria({
     this.q,
     this.make,
@@ -55,6 +58,7 @@ class ListingFilterCriteria {
     this.hasFourWheelDrive,
     this.hasTowHook,
     this.requiredFeatures,
+    this.sortBy,
   });
 
   bool get isEmpty {
@@ -71,6 +75,8 @@ class ListingFilterCriteria {
         mileageMax == null &&
         priceMin == null &&
         priceMax == null &&
+        (requiredFeatures == null || requiredFeatures!.isEmpty) &&
+        sortBy == null;
         horsepowerMin == null &&
         horsepowerMax == null &&
         kilowattsMin == null &&
@@ -147,6 +153,8 @@ class ListingFilterCriteria {
 
     final features = _normalizeList(requiredFeatures);
     if (features != null) map['requiredFeatures'] = features;
+
+    if (sortBy != null) map['sortBy'] = sortBy;
 
     return map;
   }
