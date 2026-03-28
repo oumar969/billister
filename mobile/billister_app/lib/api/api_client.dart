@@ -312,6 +312,87 @@ class ApiClient {
     );
   }
 
+  Future<List<SavedSearch>> fetchSavedSearches() async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/saved-searches'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final items = json['items'] as List<dynamic>?;
+      if (items == null) return const <SavedSearch>[];
+      return items
+          .map((e) => SavedSearch.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false);
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Fetch saved searches failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<String> createSavedSearch({
+    required String name,
+    required ListingFilterCriteria criteria,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/saved-searches/from-criteria'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({
+          'name': name,
+          'criteria': criteria.toJson(),
+        }),
+      ),
+    );
+
+    if (res.statusCode == 201) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final id = json['id'] as String?;
+      if (id == null || id.isEmpty) {
+        throw const ApiException('Create saved search response missing id');
+      }
+      return id;
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Create saved search failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> deleteSavedSearch(String id) async {
+    final res = await _send(
+      () => _http.delete(
+        _uri('/api/saved-searches/$id'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 204) return;
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Delete saved search failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
   Future<String> createListing({
     required String make,
     required String model,
@@ -368,83 +449,5 @@ class ApiClient {
 
   void dispose() {
     _http.close();
-  }
-
-  Future<List<SavedSearch>> fetchSavedSearches() async {
-    final res = await _send(
-      () => _http.get(
-        _uri('/api/saved-searches'),
-        headers: _jsonHeaders(includeAuth: true),
-      ),
-    );
-
-    if (res.statusCode == 200) {
-      final json = jsonDecode(res.body) as Map<String, dynamic>;
-      final items = json['items'] as List<dynamic>?;
-      if (items == null) return const <SavedSearch>[];
-
-      return items
-          .map((e) => SavedSearch.fromJson(e as Map<String, dynamic>))
-          .toList(growable: false);
-    }
-
-    if (res.statusCode == 401) {
-      throw const ApiException('Unauthorized', statusCode: 401);
-    }
-
-    throw ApiException(
-      'Fetch saved searches failed (${res.statusCode})',
-      statusCode: res.statusCode,
-    );
-  }
-
-  Future<String> createSavedSearch({
-    required String name,
-    required String criteriaJson,
-  }) async {
-    final res = await _send(
-      () => _http.post(
-        _uri('/api/saved-searches'),
-        headers: _jsonHeaders(includeAuth: true),
-        body: jsonEncode({'name': name, 'criteriaJson': criteriaJson}),
-      ),
-    );
-
-    if (res.statusCode == 201) {
-      final json = jsonDecode(res.body) as Map<String, dynamic>;
-      final id = json['id'] as String?;
-      if (id == null || id.isEmpty) {
-        throw const ApiException('Create saved search response missing id');
-      }
-      return id;
-    }
-
-    if (res.statusCode == 401) {
-      throw const ApiException('Unauthorized', statusCode: 401);
-    }
-
-    throw ApiException(
-      'Create saved search failed (${res.statusCode})',
-      statusCode: res.statusCode,
-    );
-  }
-
-  Future<void> deleteSavedSearch(String id) async {
-    final res = await _send(
-      () => _http.delete(
-        _uri('/api/saved-searches/$id'),
-        headers: _jsonHeaders(includeAuth: true),
-      ),
-    );
-
-    if (res.statusCode == 204) return;
-    if (res.statusCode == 401) {
-      throw const ApiException('Unauthorized', statusCode: 401);
-    }
-
-    throw ApiException(
-      'Delete saved search failed (${res.statusCode})',
-      statusCode: res.statusCode,
-    );
   }
 }

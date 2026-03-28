@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -72,14 +73,12 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                   aspectRatio: 16 / 9,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      d.images.first.url,
+                    child: CachedNetworkImage(
+                      imageUrl: d.images.first.url,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Center(
-                          child: Text('Billede kunne ikke hentes'),
-                        );
-                      },
+                      errorWidget: (context, url, error) => const Center(
+                        child: Text('Billede kunne ikke hentes'),
+                      ),
                     ),
                   ),
                 ),
@@ -98,12 +97,11 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                           child: SizedBox(
                             width: 96,
                             height: 72,
-                            child: Image.network(
-                              img.url,
+                            child: CachedNetworkImage(
+                              imageUrl: img.url,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const SizedBox.shrink();
-                              },
+                              errorWidget: (context, url, error) =>
+                                  const SizedBox.shrink(),
                             ),
                           ),
                         );

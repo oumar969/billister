@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
@@ -14,9 +15,14 @@ class MyListingsScreen extends StatefulWidget {
 }
 
 class _MyListingsScreenState extends State<MyListingsScreen> {
-  ListingsPage? _page;
+  List<ListingSummary> _items = <ListingSummary>[];
+  int _totalItems = 0;
+  int _currentPage = 1;
+  bool _hasMore = false;
   bool _loading = false;
+  bool _loadingMore = false;
   String? _error;
+  final ScrollController _scrollCtrl = ScrollController();
 
   @override
   void initState() {
@@ -24,11 +30,20 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     final token = widget.api.token;
     if (token == null || token.isEmpty) {
       setState(() {
-        _page = const ListingsPage(total: 0, page: 1, pageSize: 20, items: []);
+        _items = const <ListingSummary>[];
+        _totalItems = 0;
+        _currentPage = 1;
+        _hasMore = false;
         _error = 'Du skal være logget ind for at se dine annoncer.';
         _loading = false;
       });
@@ -38,12 +53,19 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _items = <ListingSummary>[];
+      _totalItems = 0;
+      _currentPage = 1;
+      _hasMore = false;
     });
 
     try {
-      final page = await widget.api.fetchMyListings(page: 1, pageSize: 50);
+      final page = await widget.api.fetchMyListings(page: 1, pageSize: 20);
       setState(() {
-        _page = page;
+        _items = page.items;
+        _totalItems = page.total;
+        _currentPage = 1;
+        _hasMore = page.items.length < page.total;
       });
     } catch (e) {
       setState(() {
@@ -56,38 +78,92 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     }
   }
 
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore || _loading) return;
+
+    setState(() {
+      _loadingMore = true;
+    });
+
+    final nextPage = _currentPage + 1;
+
+    try {
+      final page = await widget.api.fetchMyListings(
+        page: nextPage,
+        pageSize: 20,
+      );
+      setState(() {
+        _items = <ListingSummary>[..._items, ...page.items];
+        _currentPage = nextPage;
+        _hasMore = _items.length < _totalItems;
+      });
+    } catch (_) {
+      // Silently ignore load-more errors.
+    } finally {
+      setState(() {
+        _loadingMore = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final items = _page?.items ?? const <ListingSummary>[];
-
     return Scaffold(
       appBar: AppBar(title: const Text('Mine annoncer')),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(12),
-          children: [
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              )
-            else if (items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('Du har ingen annoncer endnu.'),
-              )
-            else
-              ...items.map((x) => _listingTile(context, x)),
-          ],
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollEndNotification &&
+              notification.metrics.extentAfter < 200) {
+            _loadMore();
+          }
+          return false;
+        },
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            controller: _scrollCtrl,
+            padding: const EdgeInsets.all(12),
+            children: [
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                )
+              else if (_items.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text('Du har ingen annoncer endnu.'),
+                )
+              else ...[
+                ..._items.map((x) => _listingTile(context, x)),
+                if (_loadingMore)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (!_hasMore)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: Text(
+                        'Alle $_totalItems annoncer vist',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -128,38 +204,38 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   }
 
   Widget _thumb(String? url) {
+    final placeholder = Container(
+      width: 56,
+      height: 56,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+      child: const Icon(Icons.directions_car_outlined),
+    );
+
     if (url == null || url.isEmpty) {
-      return Container(
-        width: 56,
-        height: 56,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        ),
-        child: const Icon(Icons.directions_car_outlined),
-      );
+      return placeholder;
     }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: Image.network(
-        url,
+      child: CachedNetworkImage(
+        imageUrl: url,
         width: 56,
         height: 56,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) {
-          return Container(
-            width: 56,
-            height: 56,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-            child: const Icon(Icons.broken_image_outlined),
-          );
-        },
+        errorWidget: (_, __, ___) => Container(
+          width: 56,
+          height: 56,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          ),
+          child: const Icon(Icons.broken_image_outlined),
+        ),
       ),
     );
   }

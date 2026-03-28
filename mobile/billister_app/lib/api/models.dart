@@ -327,6 +327,7 @@ class SavedSearch {
   final String criteriaJson;
   final DateTime createdAtUtc;
   final DateTime? updatedAtUtc;
+  final DateTime? lastNotifiedAtUtc;
 
   const SavedSearch({
     required this.id,
@@ -334,6 +335,7 @@ class SavedSearch {
     required this.criteriaJson,
     required this.createdAtUtc,
     this.updatedAtUtc,
+    this.lastNotifiedAtUtc,
   });
 
   factory SavedSearch.fromJson(Map<String, dynamic> json) {
@@ -349,6 +351,7 @@ class SavedSearch {
       criteriaJson: (json['criteriaJson'] as String?) ?? '{}',
       createdAtUtc: tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
       updatedAtUtc: tryDate('updatedAtUtc'),
+      lastNotifiedAtUtc: tryDate('lastNotifiedAtUtc'),
     );
   }
 }
