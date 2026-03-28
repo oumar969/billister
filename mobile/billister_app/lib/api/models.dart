@@ -21,6 +21,16 @@ class ListingImage {
   }
 }
 
+/// Lightweight DTO used when submitting images as part of a new/updated listing.
+class ListingImageCreate {
+  final String url;
+  final int sortOrder;
+
+  const ListingImageCreate({required this.url, required this.sortOrder});
+
+  Map<String, dynamic> toJson() => {'url': url, 'sortOrder': sortOrder};
+}
+
 class ListingSummary {
   final String id;
   final String make;
