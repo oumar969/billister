@@ -1,0 +1,9 @@
+{
+  "name": "billister-backend",
+  "version": "1.0.0",
+  "description": "Billister backend API",
+  "scripts": {
+    "start": "cd Billister && dotnet run --no-build",
+    "build": "dotnet build Billister/Billister.csproj"
+  }
+}
