@@ -1,0 +1,7 @@
+{
+  // Ensure VS Code integrated terminals prefer the 64-bit dotnet install.
+  // Some machines have an older x86 dotnet first on PATH, which breaks `dotnet run`.
+  "terminal.integrated.env.windows": {
+    "PATH": "C:\\Program Files\\dotnet;${env:PATH}"
+  }
+}
