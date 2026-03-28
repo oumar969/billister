@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 import 'criteria.dart';
 import 'models.dart';
@@ -323,6 +324,7 @@ class ApiClient {
     String? city,
     String? title,
     String? description,
+    List<ListingImageCreate>? images,
   }) async {
     final res = await _send(
       () => _http.post(
@@ -343,6 +345,7 @@ class ApiClient {
           'description': (description == null || description.trim().isEmpty)
               ? null
               : description.trim(),
+          'images': images?.map((img) => img.toJson()).toList(),
         }),
       ),
     );
@@ -366,7 +369,139 @@ class ApiClient {
     );
   }
 
+  /// Uploads a single image file to the server and returns its public URL.
+  ///
+  /// A longer timeout (60 s) is used because image transfers can be slow on
+  /// mobile networks.
+  Future<String> uploadImage(XFile imageFile) async {
+    final request = http.MultipartRequest(
+      'POST',
+      _uri('/api/images/upload'),
+    );
+
+    if (token != null && token!.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    request.files.add(
+      await http.MultipartFile.fromPath('file', imageFile.path),
+    );
+
+    try {
+      final streamed = await _http
+          .send(request)
+          .timeout(const Duration(seconds: 60));
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final url = json['url'] as String?;
+        if (url == null || url.isEmpty) {
+          throw const ApiException('Upload response missing url');
+        }
+        return url;
+      }
+
+      if (response.statusCode == 401) {
+        throw const ApiException('Unauthorized', statusCode: 401);
+      }
+
+      throw ApiException(
+        'Billedupload fejlede (${response.statusCode})',
+        statusCode: response.statusCode,
+      );
+    } on TimeoutException {
+      throw ApiException(
+        'Billedupload tog for lang tid. Prøv igen eller tjek din forbindelse.',
+      );
+    } on SocketException {
+      throw ApiException(
+        'Kan ikke forbinde til serveren ($baseUrl). Start backenden og prøv igen.',
+      );
+    } on http.ClientException catch (e) {
+      throw ApiException('Netværksfejl: ${e.message}');
+    }
+  }
+
   void dispose() {
     _http.close();
+  }
+
+  Future<List<SavedSearch>> fetchSavedSearches() async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/saved-searches'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final items = json['items'] as List<dynamic>?;
+      if (items == null) return const <SavedSearch>[];
+
+      return items
+          .map((e) => SavedSearch.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false);
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Fetch saved searches failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<String> createSavedSearch({
+    required String name,
+    required String criteriaJson,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/saved-searches'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({'name': name, 'criteriaJson': criteriaJson}),
+      ),
+    );
+
+    if (res.statusCode == 201) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final id = json['id'] as String?;
+      if (id == null || id.isEmpty) {
+        throw const ApiException('Create saved search response missing id');
+      }
+      return id;
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Create saved search failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> deleteSavedSearch(String id) async {
+    final res = await _send(
+      () => _http.delete(
+        _uri('/api/saved-searches/$id'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 204) return;
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Delete saved search failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
   }
 }
