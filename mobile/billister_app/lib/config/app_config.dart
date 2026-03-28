@@ -17,7 +17,7 @@ class AppConfig {
   static const AppConfig dev = AppConfig(
     flavor: AppFlavor.dev,
     appName: 'Billister Dev',
-    apiBaseUrl: 'http://10.0.2.2:5072',
+    apiBaseUrl: 'http://localhost:5012',
   );
 
   static const AppConfig prod = AppConfig(
@@ -27,7 +27,10 @@ class AppConfig {
   );
 
   static AppConfig get current {
-    assert(_initialized, 'AppConfig.setInstance() must be called in main() before runApp().');
+    assert(
+      _initialized,
+      'AppConfig.setInstance() must be called in main() before runApp().',
+    );
     return _instance;
   }
 
