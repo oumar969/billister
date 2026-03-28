@@ -37,38 +37,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     'hybrid',
   ];
 
-  static const List<String> _transmissionOptions = <String>[
-    'automat',
-    'manuel',
-  ];
-
-  // (label, minHp)
-  static const List<(String, int)> _hpPresets = <(String, int)>[
-    ('100+ hk', 100),
-    ('150+ hk', 150),
-    ('200+ hk', 200),
-    ('300+ hk', 300),
-  ];
-
-  // (label, minRangeKm) – for electric range quick filters
-  static const List<(String, int)> _rangePresets = <(String, int)>[
-    ('300+ km', 300),
-    ('400+ km', 400),
-    ('500+ km', 500),
-  ];
-
-  // (label, featureKey) – common equipment quick filters
-  static const List<(String, String)> _equipmentOptions = <(String, String)>[
-    ('Navigation', 'navigation'),
-    ('Adaptiv fartpilot', 'adaptiv_fartpilot'),
-    ('Panoramatag', 'panoramatag'),
-    ('Læder', 'læder'),
-    ('Varme sæder', 'varme_sæder'),
-    ('Trådløs opladning', 'trådløs_opladning'),
-    ('Head-up display', 'head_up_display'),
-    ('360° kamera', '360_kamera'),
-  ];
-
   bool _catalogLoading = false;
   String? _catalogError;
   List<VehicleMake> _makes = const <VehicleMake>[];
@@ -402,6 +370,78 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
   }
 
+  Future<void> _saveSearchAgent() async {
+    if (!widget.showFilters) return;
+
+    var token = widget.api.token;
+    if (token == null || token.isEmpty) {
+      await _openLogin();
+      if (!mounted) return;
+      token = widget.api.token;
+      if (token == null || token.isEmpty) return;
+    }
+
+    final nameCtrl = TextEditingController();
+
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Gem søgning'),
+          content: TextField(
+            controller: nameCtrl,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Navn på søgeagent',
+              hintText: 'F.eks. VW Golf under 200.000 kr',
+            ),
+            textCapitalization: TextCapitalization.sentences,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Annuller'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Gem'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+      if (confirmed != true) return;
+
+      final name = nameCtrl.text.trim();
+      if (name.isEmpty) return;
+
+      final criteriaJson = _criteria.toJson();
+      if (criteriaJson.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vælg mindst ét filter før du gemmer.')),
+        );
+        return;
+      }
+
+      await widget.api.createSavedSearchFromCriteria(
+        name: name,
+        criteria: _criteria,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Søgeagent gemt')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Kunne ikke gemme søgning: $e')));
+    } finally {
+      nameCtrl.dispose();
+    }
+  }
+
   Future<void> _toggleFavorite(String listingId) async {
     final token = widget.api.token;
     if (token == null || token.isEmpty) return;
@@ -446,6 +486,12 @@ class _ListingsScreenState extends State<ListingsScreen> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
+          if (widget.showFilters)
+            IconButton(
+              tooltip: 'Gem søgning',
+              onPressed: _saveSearchAgent,
+              icon: const Icon(Icons.notifications_active_outlined),
+            ),
           if (!loggedIn)
             TextButton(onPressed: _openLogin, child: const Text('Login'))
           else ...[
@@ -610,24 +656,26 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       );
                     },
                     displayStringForOption: (m) => m.name,
-                    fieldViewBuilder: (
-                      context,
-                      textEditingController,
-                      focusNode,
-                      onFieldSubmitted,
-                    ) {
-                      _makeAutoFieldCtrl = textEditingController;
-                      return TextField(
-                        controller: textEditingController,
-                        focusNode: focusNode,
-                        decoration: InputDecoration(
-                          labelText: 'Mærke',
-                          hintText:
-                              _catalogLoading ? 'Indlæser...' : 'Søg mærke',
-                        ),
-                        enabled: !_catalogLoading,
-                      );
-                    },
+                    fieldViewBuilder:
+                        (
+                          context,
+                          textEditingController,
+                          focusNode,
+                          onFieldSubmitted,
+                        ) {
+                          _makeAutoFieldCtrl = textEditingController;
+                          return TextField(
+                            controller: textEditingController,
+                            focusNode: focusNode,
+                            decoration: InputDecoration(
+                              labelText: 'Mærke',
+                              hintText: _catalogLoading
+                                  ? 'Indlæser...'
+                                  : 'Søg mærke',
+                            ),
+                            enabled: !_catalogLoading,
+                          );
+                        },
                     onSelected: (VehicleMake make) {
                       if (_selectedMakes.every((x) => x.id != make.id)) {
                         setState(() {
@@ -657,25 +705,26 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       );
                     },
                     displayStringForOption: (m) => m.name,
-                    fieldViewBuilder: (
-                      context,
-                      textEditingController,
-                      focusNode,
-                      onFieldSubmitted,
-                    ) {
-                      _modelAutoFieldCtrl = textEditingController;
-                      return TextField(
-                        controller: textEditingController,
-                        focusNode: focusNode,
-                        decoration: InputDecoration(
-                          labelText: 'Model',
-                          hintText: _models.isEmpty
-                              ? 'Vælg først et mærke'
-                              : 'Søg model',
-                        ),
-                        enabled: _models.isNotEmpty && !_catalogLoading,
-                      );
-                    },
+                    fieldViewBuilder:
+                        (
+                          context,
+                          textEditingController,
+                          focusNode,
+                          onFieldSubmitted,
+                        ) {
+                          _modelAutoFieldCtrl = textEditingController;
+                          return TextField(
+                            controller: textEditingController,
+                            focusNode: focusNode,
+                            decoration: InputDecoration(
+                              labelText: 'Model',
+                              hintText: _models.isEmpty
+                                  ? 'Vælg først et mærke'
+                                  : 'Søg model',
+                            ),
+                            enabled: _models.isNotEmpty && !_catalogLoading,
+                          );
+                        },
                     onSelected: (VehicleModel model) {
                       if (_selectedModels.every((x) => x.id != model.id)) {
                         setState(() {

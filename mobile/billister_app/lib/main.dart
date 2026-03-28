@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 
-import 'app.dart';
 import 'config/app_config.dart';
 import 'api/api_client.dart';
 import 'api/api_config.dart';

@@ -675,6 +675,103 @@ class ApiClient {
     );
   }
 
+  Future<String> createSavedSearchFromCriteria({
+    required String name,
+    required ListingFilterCriteria criteria,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/saved-searches/from-criteria'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({'name': name, 'criteria': criteria.toJson()}),
+      ),
+    );
+
+    if (res.statusCode == 201) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final id = json['id'] as String?;
+      if (id == null || id.isEmpty) {
+        throw const ApiException('Create saved search response missing id');
+      }
+      return id;
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Create saved search failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<List<SearchNotification>> fetchNotifications() async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/notifications'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final items = json['items'] as List<dynamic>?;
+      if (items == null) return const <SearchNotification>[];
+
+      return items
+          .map((e) => SearchNotification.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false);
+    }
+
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Fetch notifications failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> deleteNotification(String id) async {
+    final res = await _send(
+      () => _http.delete(
+        _uri('/api/notifications/$id'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 204) return;
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Delete notification failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> clearNotifications() async {
+    final res = await _send(
+      () => _http.delete(
+        _uri('/api/notifications'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+    );
+
+    if (res.statusCode == 204) return;
+    if (res.statusCode == 401) {
+      throw const ApiException('Unauthorized', statusCode: 401);
+    }
+
+    throw ApiException(
+      'Clear notifications failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
   Future<void> deleteSavedSearch(String id) async {
     final res = await _send(
       () => _http.delete(

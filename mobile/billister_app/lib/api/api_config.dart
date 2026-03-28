@@ -8,24 +8,34 @@ class ApiConfig {
   static const String _definedBaseUrl = String.fromEnvironment('API_BASE_URL');
 
   static String get baseUrl {
-    if (_definedBaseUrl.isNotEmpty) return _definedBaseUrl;
+    if (_definedBaseUrl.isNotEmpty) {
+      return _definedBaseUrl;
+    }
 
     final configured = AppConfig.current.apiBaseUrl;
     final adapted = _adaptConfiguredUrl(configured);
-    if (adapted != null) return adapted;
+    if (adapted != null) {
+      return adapted;
+    }
 
     // Fallback defaults (should rarely be needed).
-    if (kIsWeb) return 'http://localhost:5012';
-    if (defaultTargetPlatform == TargetPlatform.android)
+    if (kIsWeb) {
+      return 'http://localhost:5012';
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:5012';
+    }
     return 'http://localhost:5012';
   }
 
   static String? _adaptConfiguredUrl(String configured) {
-    if (configured.isEmpty) return null;
+    if (configured.isEmpty) {
+      return null;
+    }
     final uri = Uri.tryParse(configured);
-    if (uri == null || uri.scheme.isEmpty || uri.host.isEmpty)
+    if (uri == null || uri.scheme.isEmpty || uri.host.isEmpty) {
       return configured;
+    }
 
     // Android emulator can't reach host localhost directly.
     if (defaultTargetPlatform == TargetPlatform.android &&

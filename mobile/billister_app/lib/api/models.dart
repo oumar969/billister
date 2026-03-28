@@ -418,3 +418,42 @@ class SavedSearch {
     );
   }
 }
+
+class SearchNotification {
+  final String id;
+  final String savedSearchId;
+  final String? savedSearchName;
+  final String listingId;
+  final String title;
+  final String body;
+  final DateTime createdAtUtc;
+
+  const SearchNotification({
+    required this.id,
+    required this.savedSearchId,
+    required this.savedSearchName,
+    required this.listingId,
+    required this.title,
+    required this.body,
+    required this.createdAtUtc,
+  });
+
+  factory SearchNotification.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return SearchNotification(
+      id: json['id'] as String,
+      savedSearchId: json['savedSearchId'] as String,
+      savedSearchName: json['savedSearchName'] as String?,
+      listingId: json['listingId'] as String,
+      title: (json['title'] as String?) ?? '',
+      body: (json['body'] as String?) ?? '',
+      createdAtUtc:
+          tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+}

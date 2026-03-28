@@ -62,21 +62,22 @@ class ListingFilterCriteria {
   });
 
   bool get isEmpty {
-    return (q == null || q!.trim().isEmpty) &&
-        (make == null || make!.trim().isEmpty) &&
-        (model == null || model!.trim().isEmpty) &&
-        (makes == null || makes!.isEmpty) &&
-        (models == null || models!.isEmpty) &&
-        (fuelTypes == null || fuelTypes!.isEmpty) &&
-        (transmissions == null || transmissions!.isEmpty) &&
+    bool isBlank(String? s) => s == null || s.trim().isEmpty;
+    bool isEmptyList(List<dynamic>? l) => l == null || l.isEmpty;
+
+    return isBlank(q) &&
+        isBlank(make) &&
+        isBlank(model) &&
+        isEmptyList(makes) &&
+        isEmptyList(models) &&
+        isEmptyList(fuelTypes) &&
+        isEmptyList(transmissions) &&
         yearMin == null &&
         yearMax == null &&
         mileageMin == null &&
         mileageMax == null &&
         priceMin == null &&
         priceMax == null &&
-        (requiredFeatures == null || requiredFeatures!.isEmpty) &&
-        sortBy == null;
         horsepowerMin == null &&
         horsepowerMax == null &&
         kilowattsMin == null &&
@@ -85,7 +86,8 @@ class ListingFilterCriteria {
         rangeMax == null &&
         hasFourWheelDrive == null &&
         hasTowHook == null &&
-        (requiredFeatures == null || requiredFeatures!.isEmpty);
+        isEmptyList(requiredFeatures) &&
+        isBlank(sortBy);
   }
 
   static List<String>? _normalizeList(List<String>? values) {
