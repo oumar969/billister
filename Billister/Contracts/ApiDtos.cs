@@ -41,6 +41,7 @@ public static class ApiDtos
             string? City,
             string? Title,
             string? Description,
+            string? SellerPhone,
             List<string>? Features,
             Dictionary<string, object?>? ExtraAttributes,
             List<ListingImageDto>? Images);

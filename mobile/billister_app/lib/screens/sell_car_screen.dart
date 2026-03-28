@@ -44,6 +44,7 @@ class _SellCarScreenState extends State<SellCarScreen> {
   final _cityCtrl = TextEditingController();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
 
   bool _submitting = false;
   String? _error;
@@ -62,6 +63,7 @@ class _SellCarScreenState extends State<SellCarScreen> {
     _cityCtrl.dispose();
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _phoneCtrl.dispose();
     super.dispose();
   }
 
@@ -166,6 +168,7 @@ class _SellCarScreenState extends State<SellCarScreen> {
         city: _cityCtrl.text,
         title: _titleCtrl.text,
         description: _descCtrl.text,
+        sellerPhone: _phoneCtrl.text,
       );
 
       if (!mounted) return;
@@ -368,6 +371,22 @@ class _SellCarScreenState extends State<SellCarScreen> {
                   controller: _descCtrl,
                   decoration: const InputDecoration(labelText: 'Beskrivelse'),
                   maxLines: 4,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _phoneCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Telefonnummer (vises for købere)',
+                  ),
+                  keyboardType: TextInputType.phone,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    final digits = v.replaceAll(RegExp(r'[\s\-+()]'), '');
+                    if (!RegExp(r'^\d{6,15}$').hasMatch(digits)) {
+                      return 'Ugyldigt telefonnummer';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 12),
                 if (_error != null) ...[

@@ -40,6 +40,7 @@ public sealed class BillisterDbContext
             b.Property(x => x.BodyType).HasMaxLength(30);
             b.Property(x => x.Color).HasMaxLength(30);
             b.Property(x => x.Description).HasMaxLength(8000);
+            b.Property(x => x.SellerPhone).HasMaxLength(30);
 
             b.Property(x => x.FeaturesJson).HasDefaultValue("[]");
             b.Property(x => x.ExtraAttributesJson).HasDefaultValue("{}");

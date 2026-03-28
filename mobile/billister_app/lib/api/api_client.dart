@@ -323,6 +323,7 @@ class ApiClient {
     String? city,
     String? title,
     String? description,
+    String? sellerPhone,
   }) async {
     final res = await _send(
       () => _http.post(
@@ -343,6 +344,9 @@ class ApiClient {
           'description': (description == null || description.trim().isEmpty)
               ? null
               : description.trim(),
+          'sellerPhone': (sellerPhone == null || sellerPhone.trim().isEmpty)
+              ? null
+              : sellerPhone.trim().replaceAll(RegExp(r'[^\d+\-\s()]'), ''),
         }),
       ),
     );
