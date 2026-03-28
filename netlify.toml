@@ -5,7 +5,7 @@
     flutter config --enable-web && \
     cd mobile/billister_app && \
     flutter pub get && \
-    flutter build web --release
+    flutter build web --release -t lib/main_prod.dart
   """
   publish = "mobile/billister_app/build/web"
 
