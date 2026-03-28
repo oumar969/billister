@@ -6,6 +6,7 @@ public sealed class CarListing
 
     // Ownership
     public Guid SellerUserId { get; set; }
+    public string? SellerPhone { get; set; }
 
     // Core
     public string Make { get; set; } = string.Empty; // mærke

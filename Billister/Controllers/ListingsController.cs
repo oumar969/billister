@@ -137,6 +137,7 @@ public sealed class ListingsController : ControllerBase
         {
             listing.Id,
             listing.SellerUserId,
+            listing.SellerPhone,
             listing.Make,
             listing.Model,
             listing.Variant,
@@ -183,6 +184,7 @@ public sealed class ListingsController : ControllerBase
         var listing = new CarListing
         {
             SellerUserId = userId,
+            SellerPhone = req.SellerPhone,
             Make = req.Make,
             Model = req.Model,
             Variant = req.Variant,

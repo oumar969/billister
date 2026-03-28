@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
+import 'sell_car_screen.dart';
 
 class ListingDetailsScreen extends StatefulWidget {
   const ListingDetailsScreen({
@@ -25,6 +27,16 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   void initState() {
     super.initState();
     _future = widget.api.fetchListingDetails(widget.listingId);
+  }
+
+  Future<void> _launch(Uri uri) async {
+    if (!await launchUrl(uri)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Kunne ikke åbne appen')),
+        );
+      }
+    }
   }
 
   @override
@@ -148,7 +160,22 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                 '${d.priceDkk.toStringAsFixed(0)} kr.',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+              _ContactButtons(
+                sellerPhone: d.sellerPhone,
+                onSell: () => Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => SellCarScreen(api: widget.api),
+                  ),
+                ),
+                onCall: d.sellerPhone != null
+                    ? () => _launch(Uri(scheme: 'tel', path: d.sellerPhone))
+                    : null,
+                onSms: d.sellerPhone != null
+                    ? () => _launch(Uri(scheme: 'sms', path: d.sellerPhone))
+                    : null,
+              ),
+              const SizedBox(height: 16),
               _kv('Brændstof', d.fuelType),
               _kv('Gear', d.transmission),
               if (d.year != null) _kv('År', '${d.year}'),
@@ -210,6 +237,82 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
           Expanded(child: Text(v)),
         ],
       ),
+    );
+  }
+}
+
+class _ContactButtons extends StatelessWidget {
+  const _ContactButtons({
+    required this.sellerPhone,
+    required this.onSell,
+    required this.onCall,
+    required this.onSms,
+  });
+
+  final String? sellerPhone;
+  final VoidCallback onSell;
+  final VoidCallback? onCall;
+  final VoidCallback? onSms;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onCall,
+                icon: const Icon(Icons.phone),
+                label: const Text('Ring'),
+                style: onCall == null
+                    ? FilledButton.styleFrom(
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onSurface,
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onSms,
+                icon: const Icon(Icons.sms),
+                label: const Text('SMS'),
+                style: onSms == null
+                    ? FilledButton.styleFrom(
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onSurface,
+                      )
+                    : null,
+              ),
+            ),
+          ],
+        ),
+        if (sellerPhone == null) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Sælger har ikke angivet telefonnummer',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: onSell,
+          icon: const Icon(Icons.sell_outlined),
+          label: const Text('Sælg din bil'),
+        ),
+      ],
     );
   }
 }
