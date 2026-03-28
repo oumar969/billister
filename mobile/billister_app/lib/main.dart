@@ -71,11 +71,27 @@ class _BillisterAppState extends State<BillisterApp> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: Colors.indigo,
+      brightness: Brightness.light,
+    );
+
     return MaterialApp(
       navigatorKey: _navigatorKey,
       title: 'Billister',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
+        colorScheme: scheme,
+        appBarTheme: AppBarTheme(
+          backgroundColor: scheme.surface,
+          foregroundColor: scheme.onSurface,
+          surfaceTintColor: scheme.surface,
+          scrolledUnderElevation: 0,
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
+        ),
       ),
       home: MainTabsScreen(api: _api),
     );

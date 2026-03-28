@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_client.dart';
 import '../api/criteria.dart';
@@ -24,11 +25,16 @@ class ListingsScreen extends StatefulWidget {
   State<ListingsScreen> createState() => _ListingsScreenState();
 }
 
+enum _HomeViewMode { list, grid }
+
 class _ListingsScreenState extends State<ListingsScreen> {
   ListingsPage? _page;
   String? _error;
   bool _loading = false;
   Set<String> _favoriteIds = <String>{};
+
+  static const String _homeViewPrefKey = 'home_view_mode';
+  _HomeViewMode _homeViewMode = _HomeViewMode.list;
 
   static const List<String> _fuelTypeOptions = <String>[
     'el',
@@ -134,6 +140,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
     if (widget.showFilters) {
       _loadVehicleCatalog();
     }
+
+    _loadHomeViewPreference();
     _load();
   }
 
@@ -477,6 +485,147 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
   }
 
+  Future<void> _loadHomeViewPreference() async {
+    if (widget.showFilters) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_homeViewPrefKey);
+      final mode = raw == 'grid' ? _HomeViewMode.grid : _HomeViewMode.list;
+      if (!mounted) return;
+      setState(() {
+        _homeViewMode = mode;
+      });
+    } catch (_) {
+      // Ignore preference failures.
+    }
+  }
+
+  Future<void> _toggleHomeViewMode() async {
+    if (widget.showFilters) return;
+
+    final next = _homeViewMode == _HomeViewMode.list
+        ? _HomeViewMode.grid
+        : _HomeViewMode.list;
+
+    setState(() {
+      _homeViewMode = next;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _homeViewPrefKey,
+        next == _HomeViewMode.grid ? 'grid' : 'list',
+      );
+    } catch (_) {
+      // Ignore preference failures.
+    }
+  }
+
+  Widget _imageThumb(BuildContext context, ListingSummary item) {
+    if (item.images.isEmpty) {
+      return Container(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Icon(
+          Icons.directions_car,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      );
+    }
+
+    return Image.network(
+      item.images.first.url,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: Icon(
+            Icons.directions_car,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _homeGridItem(
+    BuildContext context,
+    ListingSummary item,
+    bool loggedIn,
+  ) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  ListingDetailsScreen(api: widget.api, listingId: item.id),
+            ),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _imageThumb(context, item),
+                  if (loggedIn)
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Material(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0.85),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          tooltip: _favoriteIds.contains(item.id)
+                              ? 'Fjern favorit'
+                              : 'Tilføj favorit',
+                          onPressed: () => _toggleFavorite(item.id),
+                          icon: Icon(
+                            _favoriteIds.contains(item.id)
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${item.priceDkk.toString()} kr',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final token = widget.api.token;
@@ -486,6 +635,18 @@ class _ListingsScreenState extends State<ListingsScreen> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
+          if (!widget.showFilters)
+            IconButton(
+              tooltip: _homeViewMode == _HomeViewMode.grid
+                  ? 'Listevisning'
+                  : 'Gridvisning',
+              onPressed: _toggleHomeViewMode,
+              icon: Icon(
+                _homeViewMode == _HomeViewMode.grid
+                    ? Icons.view_agenda_outlined
+                    : Icons.grid_view_outlined,
+              ),
+            ),
           if (widget.showFilters)
             IconButton(
               tooltip: 'Gem søgning',
@@ -510,118 +671,234 @@ class _ListingsScreenState extends State<ListingsScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(12),
-          children: [
-            if (widget.showFilters) ...[
-              _filtersCard(context),
-              const SizedBox(height: 12),
-            ],
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      _error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+        child: widget.showFilters
+            ? ListView(
+                padding: const EdgeInsets.all(12),
+                children: [
+                  _filtersCard(context),
+                  const SizedBox(height: 12),
+                  if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton(
+                            onPressed: _load,
+                            child: const Text('Retry'),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: _load,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              )
-            else if (_page == null || _page!.items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('No listings yet')),
-              )
-            else
-              ..._page!.items.map(
-                (item) => Card(
-                  child: ListTile(
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: SizedBox(
-                        width: 64,
-                        height: 64,
-                        child: item.images.isEmpty
-                            ? Container(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
-                                child: Icon(
-                                  Icons.directions_car,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              )
-                            : Image.network(
-                                item.images.first.url,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                    child: Icon(
-                                      Icons.directions_car,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
+                    )
+                  else if (_page == null || _page!.items.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: Text('No listings yet')),
+                    )
+                  else
+                    ..._page!.items.map(
+                      (item) => Card(
+                        child: ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              width: 64,
+                              height: 64,
+                              child: _imageThumb(context, item),
+                            ),
+                          ),
+                          title: Text(item.title),
+                          subtitle: Text(_subtitle(item)),
+                          trailing: loggedIn
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('${item.priceDkk.toString()} kr'),
+                                    IconButton(
+                                      tooltip: _favoriteIds.contains(item.id)
+                                          ? 'Fjern favorit'
+                                          : 'Tilføj favorit',
+                                      onPressed: () => _toggleFavorite(item.id),
+                                      icon: Icon(
+                                        _favoriteIds.contains(item.id)
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
                                     ),
-                                  );
-                                },
+                                  ],
+                                )
+                              : Text('${item.priceDkk.toString()} kr'),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ListingDetailsScreen(
+                                  api: widget.api,
+                                  listingId: item.id,
+                                ),
                               ),
+                            );
+                          },
+                        ),
                       ),
                     ),
-                    title: Text(item.title),
-                    subtitle: Text(_subtitle(item)),
-                    trailing: loggedIn
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
+                ],
+              )
+            : (_loading
+                  ? ListView(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      ],
+                    )
+                  : (_error != null
+                        ? ListView(
+                            padding: const EdgeInsets.all(12),
                             children: [
-                              Text('${item.priceDkk.toString()} kr'),
-                              IconButton(
-                                tooltip: _favoriteIds.contains(item.id)
-                                    ? 'Fjern favorit'
-                                    : 'Tilføj favorit',
-                                onPressed: () => _toggleFavorite(item.id),
-                                icon: Icon(
-                                  _favoriteIds.contains(item.id)
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: Theme.of(context).colorScheme.primary,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      _error!,
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.error,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    OutlinedButton(
+                                      onPressed: _load,
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           )
-                        : Text('${item.priceDkk.toString()} kr'),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ListingDetailsScreen(
-                            api: widget.api,
-                            listingId: item.id,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-          ],
-        ),
+                        : (_page == null || _page!.items.isEmpty)
+                        ? ListView(
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Center(child: Text('No listings yet')),
+                              ),
+                            ],
+                          )
+                        : (_homeViewMode == _HomeViewMode.grid
+                              ? GridView.builder(
+                                  padding: const EdgeInsets.all(12),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: 12,
+                                        mainAxisSpacing: 12,
+                                        childAspectRatio: 0.78,
+                                      ),
+                                  itemCount: _page!.items.length,
+                                  itemBuilder: (context, index) {
+                                    final item = _page!.items[index];
+                                    return _homeGridItem(
+                                      context,
+                                      item,
+                                      loggedIn,
+                                    );
+                                  },
+                                )
+                              : ListView(
+                                  padding: const EdgeInsets.all(12),
+                                  children: _page!.items
+                                      .map(
+                                        (item) => Card(
+                                          child: ListTile(
+                                            leading: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child: SizedBox(
+                                                width: 64,
+                                                height: 64,
+                                                child: _imageThumb(
+                                                  context,
+                                                  item,
+                                                ),
+                                              ),
+                                            ),
+                                            title: Text(item.title),
+                                            subtitle: Text(_subtitle(item)),
+                                            trailing: loggedIn
+                                                ? Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        '${item.priceDkk.toString()} kr',
+                                                      ),
+                                                      IconButton(
+                                                        tooltip:
+                                                            _favoriteIds
+                                                                .contains(
+                                                                  item.id,
+                                                                )
+                                                            ? 'Fjern favorit'
+                                                            : 'Tilføj favorit',
+                                                        onPressed: () =>
+                                                            _toggleFavorite(
+                                                              item.id,
+                                                            ),
+                                                        icon: Icon(
+                                                          _favoriteIds.contains(
+                                                                item.id,
+                                                              )
+                                                              ? Icons.favorite
+                                                              : Icons
+                                                                    .favorite_border,
+                                                          color: Theme.of(
+                                                            context,
+                                                          ).colorScheme.primary,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : Text(
+                                                    '${item.priceDkk.toString()} kr',
+                                                  ),
+                                            onTap: () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      ListingDetailsScreen(
+                                                        api: widget.api,
+                                                        listingId: item.id,
+                                                      ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      )
+                                      .toList(growable: false),
+                                )))),
       ),
     );
   }
