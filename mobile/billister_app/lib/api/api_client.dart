@@ -324,6 +324,7 @@ class ApiClient {
     String? city,
     String? title,
     String? description,
+    String? sellerPhone,
     List<ListingImageCreate>? images,
   }) async {
     final res = await _send(
@@ -345,6 +346,9 @@ class ApiClient {
           'description': (description == null || description.trim().isEmpty)
               ? null
               : description.trim(),
+          'sellerPhone': (sellerPhone == null || sellerPhone.trim().isEmpty)
+              ? null
+              : sellerPhone.trim().replaceAll(RegExp(r'[^\d+\-\s()]'), ''),
           'images': images?.map((img) => img.toJson()).toList(),
         }),
       ),

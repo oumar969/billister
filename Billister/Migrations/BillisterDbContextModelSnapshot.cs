@@ -247,6 +247,10 @@ namespace Billister.Migrations
                     b.Property<Guid>("SellerUserId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SellerPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Title")
                         .HasColumnType("TEXT");
 
