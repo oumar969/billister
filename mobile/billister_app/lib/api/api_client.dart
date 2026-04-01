@@ -384,6 +384,37 @@ class ApiClient {
     throw ApiException(error, statusCode: res.statusCode);
   }
 
+  Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/auth/change-password'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        }),
+      ),
+    );
+
+    if (res.statusCode == 200) return;
+
+    if (res.statusCode == 400 || res.statusCode == 401) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final error =
+          json['error'] as String? ?? 'Skift af adgangskode mislykkedes';
+      throw ApiException(error, statusCode: res.statusCode);
+    }
+
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    final error =
+        json['error'] as String? ??
+        'Skift af adgangskode mislykkedes (${res.statusCode})';
+    throw ApiException(error, statusCode: res.statusCode);
+  }
+
   Future<ListingsPage> fetchListings({int page = 1, int pageSize = 20}) async {
     final res = await _send(
       () => _http.get(
