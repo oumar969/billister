@@ -268,4 +268,36 @@ public sealed class AuthController : ControllerBase
 
         return Ok(new { message = "Adgangskode er nulstillet. Du kan nu logge ind med din nye adgangskode" });
     }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ApiDtos.Auth.ChangePasswordRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.CurrentPassword) || string.IsNullOrWhiteSpace(req.NewPassword))
+            return BadRequest(new { error = "Nuværende og ny adgangskode er påkrævet" });
+
+        var passwordValidation = _validation.ValidatePassword(req.NewPassword);
+        if (!passwordValidation.IsValid)
+            return BadRequest(new { error = passwordValidation.ErrorMessage });
+
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Bruger ikke fundet" });
+
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return Unauthorized(new { error = "Bruger ikke fundet" });
+
+        var result = await _userManager.ChangePasswordAsync(user, req.CurrentPassword, req.NewPassword);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            // Use a friendly Danish message for wrong current password
+            if (result.Errors.Any(e => e.Code == "PasswordMismatch"))
+                return BadRequest(new { error = "Den nuværende adgangskode er forkert" });
+            return BadRequest(new { error = errors });
+        }
+
+        return Ok(new { message = "Adgangskode er ændret" });
+    }
 }

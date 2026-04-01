@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
+import 'change_password_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final ApiClient api;
@@ -134,10 +135,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: () {
-                      // TODO: Implement change password
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Skift adgangskode kommer snart'),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ChangePasswordScreen(api: widget.api),
                         ),
                       );
                     },
