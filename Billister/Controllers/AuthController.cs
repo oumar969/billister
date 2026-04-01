@@ -4,6 +4,7 @@ using Billister.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Billister.Controllers;
 
@@ -32,6 +33,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting("auth-strict")]
     public async Task<ActionResult<ApiDtos.Auth.AuthResponse>> Register([FromBody] ApiDtos.Auth.RegisterRequest req)
     {
         // Validate input
@@ -97,6 +99,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("auth-strict")]
     public async Task<ActionResult<ApiDtos.Auth.AuthResponse>> Login([FromBody] ApiDtos.Auth.LoginRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
@@ -198,6 +201,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("resend-verification")]
+    [EnableRateLimiting("auth-resend")]
     public async Task<IActionResult> ResendVerification([FromBody] ApiDtos.Auth.ResendVerificationRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Email))
@@ -221,6 +225,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth-strict")]
     public async Task<IActionResult> ForgotPassword([FromBody] ApiDtos.Auth.ForgotPasswordRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Email))

@@ -1,9 +1,11 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Billister.Data;
 using Billister.Models;
 using Billister.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -77,12 +79,52 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// Rate limiting: protect auth endpoints from brute-force and abuse.
+builder.Services.AddRateLimiter(options =>
+{
+    // Strict policy: login, register, forgot-password (5 req/min per IP)
+    options.AddFixedWindowLimiter("auth-strict", o =>
+    {
+        o.PermitLimit = 5;
+        o.Window = TimeSpan.FromMinutes(1);
+        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        o.QueueLimit = 0;
+    });
+
+    // Relaxed policy: resend-verification (3 req/10min per IP)
+    options.AddFixedWindowLimiter("auth-resend", o =>
+    {
+        o.PermitLimit = 3;
+        o.Window = TimeSpan.FromMinutes(10);
+        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        o.QueueLimit = 0;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, _) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { error = "For mange forsøg. Prøv igen om lidt." });
+    };
+});
+
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAiDescriptionService, AiDescriptionService>();
 builder.Services.AddScoped<IMotorregisterService, MotorregisterService>();
 builder.Services.AddScoped<ISavedSearchNotifier, SavedSearchNotifier>();
 builder.Services.AddScoped<IInputValidationService, InputValidationService>();
-builder.Services.AddScoped<IEmailService, MockEmailService>();
+
+// Register email service: use SMTP if host is configured, otherwise use the console-logging mock.
+var smtpHost = builder.Configuration["Smtp:Host"];
+if (!string.IsNullOrWhiteSpace(smtpHost))
+{
+    builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+}
+else
+{
+    builder.Services.AddScoped<IEmailService, MockEmailService>();
+}
 
 var app = builder.Build();
 
@@ -320,6 +362,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
