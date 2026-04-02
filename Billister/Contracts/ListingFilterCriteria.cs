@@ -6,30 +6,50 @@ public sealed record ListingFilterCriteria
 {
     public string? Q { get; init; }
 
+    // Sale type
+    public bool? IsLeasing { get; init; }
+    public List<string>? SellerTypes { get; init; } // "private", "dealer"
+    public List<string>? SaleTypes { get; init; } // "commission", "formidling"
+
+    // Make / Model
     public List<string>? Makes { get; init; }
     public List<string>? Models { get; init; }
 
+    // Body type
+    public List<string>? BodyTypes { get; init; }
+
+    // Fuel type & transmission
     public List<string>? FuelTypes { get; init; }
     public List<string>? Transmissions { get; init; }
 
+    // Price
     public decimal? PriceMin { get; init; }
     public decimal? PriceMax { get; init; }
 
+    // Year
     public int? YearMin { get; init; }
     public int? YearMax { get; init; }
 
+    // First registration year (Ågang)
+    public int? FirstRegistrationYearMin { get; init; }
+    public int? FirstRegistrationYearMax { get; init; }
+
+    // Mileage
     public int? MileageMin { get; init; }
     public int? MileageMax { get; init; }
 
+    // Range (for EV)
     public int? RangeMin { get; init; }
     public int? RangeMax { get; init; }
 
+    // Performance
     public int? HorsepowerMin { get; init; }
     public int? HorsepowerMax { get; init; }
 
     public int? KilowattsMin { get; init; }
     public int? KilowattsMax { get; init; }
 
+    // Features
     public bool? HasTowHook { get; init; }
     public bool? HasFourWheelDrive { get; init; }
 

@@ -7,6 +7,11 @@ public sealed class CarListing
     // Ownership
     public Guid SellerUserId { get; set; }
     public string? SellerPhone { get; set; }
+    public string? SellerType { get; set; } // "private" or "dealer"
+
+    // Sale type
+    public string? SaleType { get; set; } // "commission" or "formidling" (intermediary/trade-in sale)
+    public bool IsLeasing { get; set; } // false = for sale, true = leasing
 
     // Core
     public string Make { get; set; } = string.Empty; // mærke
@@ -14,6 +19,7 @@ public sealed class CarListing
     public string? Variant { get; set; }
 
     public int? Year { get; set; }
+    public int? FirstRegistrationYear { get; set; } // Ågang (1. registrering)
     public int? MileageKm { get; set; }
     public decimal PriceDkk { get; set; }
 

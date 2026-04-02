@@ -323,7 +323,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           fontSize: 14,
                         ),
                       ),
-                      if (isOwn && (message.readByUserIds?.isNotEmpty ?? false))
+                      if (isOwn && message.isRead)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(

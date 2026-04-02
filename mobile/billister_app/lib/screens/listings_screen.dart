@@ -56,6 +56,14 @@ class _ListingsScreenState extends State<ListingsScreen> {
   String? _selectedFuelType;
   String? _selectedSortBy;
 
+  // New filtering fields
+  bool _isLeasing = false;
+  Set<String> _selectedSellerTypes = {}; // "private", "dealer"
+  Set<String> _selectedSaleTypes = {}; // "commission", "formidling"
+  Set<String> _selectedBodyTypes = {}; // "sedat", "suv", etc
+  Set<String> _selectedTransmissionTypes = {}; // "manual", "automatic"
+
+  late RangeValues _firstRegistrationYearRange;
   static const double _priceMinBound = 0;
   static const double _priceMaxBound = 1000000;
   static const double _yearMinBound = 1980;
@@ -99,24 +107,37 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
     return ListingFilterCriteria(
       q: _qCtrl.text,
+      /* Sale type filters */
+      isLeasing: _isLeasing ? true : null,
+      sellerTypes: _selectedSellerTypes.isEmpty ? null : _selectedSellerTypes.toList(),
+      saleTypes: _selectedSaleTypes.isEmpty ? null : _selectedSaleTypes.toList(),
+      /* Make / Model */
       makes: _selectedMakes.map((x) => x.name).toList(growable: false),
       models: _selectedModels.map((x) => x.name).toList(growable: false),
+      /* Body Type */
+      bodyTypes: _selectedBodyTypes.isEmpty ? null : _selectedBodyTypes.toList(),
+      /* Fuel & Transmission */
       fuelTypes: _selectedFuelType == null
           ? null
           : <String>[_selectedFuelType!],
-      transmissions: parseCsv(_transmissionsCtrl.text),
+      transmissions: _selectedTransmissionTypes.isEmpty ? null : _selectedTransmissionTypes.toList(),
+      /* Price */
       priceMin: _priceMinCtrl.text.trim().isEmpty
           ? null
           : tryNum(_priceMinCtrl.text),
       priceMax: _priceMaxCtrl.text.trim().isEmpty
           ? null
           : tryNum(_priceMaxCtrl.text),
+      /* Year & First Registration */
       yearMin: _yearMinCtrl.text.trim().isEmpty
           ? null
           : tryInt(_yearMinCtrl.text),
       yearMax: _yearMaxCtrl.text.trim().isEmpty
           ? null
           : tryInt(_yearMaxCtrl.text),
+      firstRegistrationYearMin: _firstRegistrationYearRange.start.toInt(),
+      firstRegistrationYearMax: _firstRegistrationYearRange.end.toInt(),
+      /* Mileage */
       mileageMin: _mileageMinCtrl.text.trim().isEmpty
           ? null
           : tryInt(_mileageMinCtrl.text),
@@ -133,9 +154,10 @@ class _ListingsScreenState extends State<ListingsScreen> {
     super.initState();
 
     _yearMaxBound = DateTime.now().year.toDouble();
-    _priceRange = const RangeValues(_priceMinBound, _priceMaxBound);
+    _priceRange = RangeValues(_priceMinBound, _priceMaxBound);
     _yearRange = RangeValues(_yearMinBound, _yearMaxBound);
-    _mileageRange = const RangeValues(_mileageMinBound, _mileageMaxBound);
+    _mileageRange = RangeValues(_mileageMinBound, _mileageMaxBound);
+    _firstRegistrationYearRange = RangeValues(_yearMinBound, _yearMaxBound);
 
     if (widget.showFilters) {
       _loadVehicleCatalog();
@@ -1213,6 +1235,326 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 hintText: 'navigation, adaptiv_fartpilot',
               ),
             ),
+            const SizedBox(height: 12),
+            // Populære filtre: Køb/Leasing toggle
+            ExpansionTile(
+              title: const Text('Populære filtre'),
+              children: [
+                CheckboxListTile(
+                  title: const Text('Leasing'),
+                  value: _isLeasing,
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            _isLeasing = v ?? false;
+                          });
+                        },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Vilkår: Salgtype checkboxes
+            ExpansionTile(
+              title: const Text('Vilkår'),
+              children: [
+                CheckboxListTile(
+                  title: const Text('Komissionssalg'),
+                  value: _selectedSaleTypes.contains('commission'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedSaleTypes.add('commission');
+                            } else {
+                              _selectedSaleTypes.remove('commission');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Formidlingssalg'),
+                  value: _selectedSaleTypes.contains('formidling'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedSaleTypes.add('formidling');
+                            } else {
+                              _selectedSaleTypes.remove('formidling');
+                            }
+                          });
+                        },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Biltype checkboxes
+            ExpansionTile(
+              title: const Text('Biltype'),
+              children: [
+                CheckboxListTile(
+                  title: const Text('Mikro'),
+                  value: _selectedBodyTypes.contains('mikro'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedBodyTypes.add('mikro');
+                            } else {
+                              _selectedBodyTypes.remove('mikro');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Sedan'),
+                  value: _selectedBodyTypes.contains('sedan'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedBodyTypes.add('sedan');
+                            } else {
+                              _selectedBodyTypes.remove('sedan');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Stationcar'),
+                  value: _selectedBodyTypes.contains('stationcar'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedBodyTypes.add('stationcar');
+                            } else {
+                              _selectedBodyTypes.remove('stationcar');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('SUV'),
+                  value: _selectedBodyTypes.contains('suv'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedBodyTypes.add('suv');
+                            } else {
+                              _selectedBodyTypes.remove('suv');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Crossover'),
+                  value: _selectedBodyTypes.contains('crossover'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedBodyTypes.add('crossover');
+                            } else {
+                              _selectedBodyTypes.remove('crossover');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Minibus'),
+                  value: _selectedBodyTypes.contains('minibus'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedBodyTypes.add('minibus');
+                            } else {
+                              _selectedBodyTypes.remove('minibus');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Hatchback'),
+                  value: _selectedBodyTypes.contains('hatchback'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedBodyTypes.add('hatchback');
+                            } else {
+                              _selectedBodyTypes.remove('hatchback');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Cabriolet'),
+                  value: _selectedBodyTypes.contains('cabriolet'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedBodyTypes.add('cabriolet');
+                            } else {
+                              _selectedBodyTypes.remove('cabriolet');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Coupe'),
+                  value: _selectedBodyTypes.contains('coupe'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedBodyTypes.add('coupe');
+                            } else {
+                              _selectedBodyTypes.remove('coupe');
+                            }
+                          });
+                        },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Geartype checkboxes
+            ExpansionTile(
+              title: const Text('Geartype'),
+              children: [
+                CheckboxListTile(
+                  title: const Text('Manuel gear'),
+                  value: _selectedTransmissionTypes.contains('manuel'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedTransmissionTypes.add('manuel');
+                            } else {
+                              _selectedTransmissionTypes.remove('manuel');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Automatisk gear'),
+                  value: _selectedTransmissionTypes.contains('automat'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedTransmissionTypes.add('automat');
+                            } else {
+                              _selectedTransmissionTypes.remove('automat');
+                            }
+                          });
+                        },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Modelår range slider
+            ExpansionTile(
+              title: Text('Modelår: ${_yearRange.start.round()} - ${_yearRange.end.round()}'),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: RangeSlider(
+                    values: _yearRange,
+                    min: _yearMinBound,
+                    max: _yearMaxBound,
+                    divisions: (_yearMaxBound - _yearMinBound).round().clamp(1, 200),
+                    labels: RangeLabels(
+                      _yearRange.start.round().toString(),
+                      _yearRange.end.round().toString(),
+                    ),
+                    onChanged: _loading ? null : _onYearRangeChanged,
+                    onChangeEnd: _loading ? null : _finalizeYearRange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Årgang (1. registrering) range slider
+            ExpansionTile(
+              title: Text('Årgang: ${_firstRegistrationYearRange.start.round()} - ${_firstRegistrationYearRange.end.round()}'),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: RangeSlider(
+                    values: _firstRegistrationYearRange,
+                    min: 1976,
+                    max: 2027,
+                    divisions: 51,
+                    labels: RangeLabels(
+                      _firstRegistrationYearRange.start.round().toString(),
+                      _firstRegistrationYearRange.end.round().toString(),
+                    ),
+                    onChanged: _loading
+                        ? null
+                        : (v) {
+                            setState(() {
+                              _firstRegistrationYearRange = v;
+                            });
+                          },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Sælger type checkboxes
+            ExpansionTile(
+              title: const Text('Sælger'),
+              children: [
+                CheckboxListTile(
+                  title: const Text('Forhandler'),
+                  value: _selectedSellerTypes.contains('dealer'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedSellerTypes.add('dealer');
+                            } else {
+                              _selectedSellerTypes.remove('dealer');
+                            }
+                          });
+                        },
+                ),
+                CheckboxListTile(
+                  title: const Text('Privat'),
+                  value: _selectedSellerTypes.contains('private'),
+                  onChanged: _loading
+                      ? null
+                      : (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedSellerTypes.add('private');
+                            } else {
+                              _selectedSellerTypes.remove('private');
+                            }
+                          });
+                        },
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             InputDecorator(
               decoration: const InputDecoration(labelText: 'Sortering'),
@@ -1290,7 +1632,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                           _priceMinCtrl.clear();
                           _priceMaxCtrl.clear();
 
-                          _priceRange = const RangeValues(
+                          _priceRange = RangeValues(
                             _priceMinBound,
                             _priceMaxBound,
                           );

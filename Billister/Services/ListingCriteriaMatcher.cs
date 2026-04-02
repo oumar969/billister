@@ -10,30 +10,50 @@ public static class ListingCriteriaMatcher
     {
         if (!IsNullOrContainsText(listing, criteria.Q)) return false;
 
+        // Sale type
+        if (criteria.IsLeasing is not null && listing.IsLeasing != criteria.IsLeasing.Value) return false;
+        if (criteria.SellerTypes is { Count: > 0 } && !ContainsIgnoreCase(criteria.SellerTypes, listing.SellerType ?? "")) return false;
+        if (criteria.SaleTypes is { Count: > 0 } && !ContainsIgnoreCase(criteria.SaleTypes, listing.SaleType ?? "")) return false;
+
+        // Make / Model
         if (criteria.Makes is { Count: > 0 } && !ContainsIgnoreCase(criteria.Makes, listing.Make)) return false;
         if (criteria.Models is { Count: > 0 } && !ContainsIgnoreCase(criteria.Models, listing.Model)) return false;
 
+        // Body type
+        if (criteria.BodyTypes is { Count: > 0 } && !ContainsIgnoreCase(criteria.BodyTypes, listing.BodyType ?? "")) return false;
+
+        // Fuel type & transmission
         if (criteria.FuelTypes is { Count: > 0 } && !ContainsIgnoreCase(criteria.FuelTypes, listing.FuelType)) return false;
         if (criteria.Transmissions is { Count: > 0 } && !ContainsIgnoreCase(criteria.Transmissions, listing.Transmission)) return false;
 
+        // Price
         if (criteria.PriceMin is not null && listing.PriceDkk < criteria.PriceMin.Value) return false;
         if (criteria.PriceMax is not null && listing.PriceDkk > criteria.PriceMax.Value) return false;
 
+        // Year
         if (criteria.YearMin is not null && (listing.Year is null || listing.Year.Value < criteria.YearMin.Value)) return false;
         if (criteria.YearMax is not null && (listing.Year is null || listing.Year.Value > criteria.YearMax.Value)) return false;
 
+        // First registration year (Ågang)
+        if (criteria.FirstRegistrationYearMin is not null && (listing.FirstRegistrationYear is null || listing.FirstRegistrationYear.Value < criteria.FirstRegistrationYearMin.Value)) return false;
+        if (criteria.FirstRegistrationYearMax is not null && (listing.FirstRegistrationYear is null || listing.FirstRegistrationYear.Value > criteria.FirstRegistrationYearMax.Value)) return false;
+
+        // Mileage
         if (criteria.MileageMin is not null && (listing.MileageKm is null || listing.MileageKm.Value < criteria.MileageMin.Value)) return false;
         if (criteria.MileageMax is not null && (listing.MileageKm is null || listing.MileageKm.Value > criteria.MileageMax.Value)) return false;
 
+        // Range (for EV)
         if (criteria.RangeMin is not null && (listing.ElectricRangeKm is null || listing.ElectricRangeKm.Value < criteria.RangeMin.Value)) return false;
         if (criteria.RangeMax is not null && (listing.ElectricRangeKm is null || listing.ElectricRangeKm.Value > criteria.RangeMax.Value)) return false;
 
+        // Performance
         if (criteria.HorsepowerMin is not null && (listing.Horsepower is null || listing.Horsepower.Value < criteria.HorsepowerMin.Value)) return false;
         if (criteria.HorsepowerMax is not null && (listing.Horsepower is null || listing.Horsepower.Value > criteria.HorsepowerMax.Value)) return false;
 
         if (criteria.KilowattsMin is not null && (listing.Kilowatts is null || listing.Kilowatts.Value < criteria.KilowattsMin.Value)) return false;
         if (criteria.KilowattsMax is not null && (listing.Kilowatts is null || listing.Kilowatts.Value > criteria.KilowattsMax.Value)) return false;
 
+        // Features
         if (criteria.HasTowHook is not null && listing.HasTowHook != criteria.HasTowHook) return false;
         if (criteria.HasFourWheelDrive is not null && listing.HasFourWheelDrive != criteria.HasFourWheelDrive) return false;
 
@@ -46,6 +66,7 @@ public static class ListingCriteriaMatcher
             }
         }
 
+        // Location filtering
         if (criteria.CenterLat is not null && criteria.CenterLng is not null && criteria.RadiusKm is not null)
         {
             if (listing.Latitude is null || listing.Longitude is null) return false;

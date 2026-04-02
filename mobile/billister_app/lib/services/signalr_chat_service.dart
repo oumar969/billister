@@ -1,6 +1,6 @@
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:flutter/foundation.dart';
-import '../models/chat_models.dart';
+import '../api/models.dart';
 
 class SignalRChatService extends ChangeNotifier {
   late HubConnection _hubConnection;

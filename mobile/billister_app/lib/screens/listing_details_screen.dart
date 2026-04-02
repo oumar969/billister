@@ -63,6 +63,71 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
     }
   }
 
+  Future<void> _showReportDialog(BuildContext context) async {
+    final TextEditingController reasonController = TextEditingController();
+    final reasons = [
+      'Forkert pris',
+      'Forkert billeder',
+      'Duplikat annoncer',
+      'Svindel/Ulovligt',
+      'Dårlig tilstand',
+      'Andet',
+    ];
+    String selectedReason = reasons.first;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Anmeld annonce'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButton<String>(
+              value: selectedReason,
+              isExpanded: true,
+              items: reasons
+                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) {
+                  selectedReason = v;
+                  (context as Element).markNeedsBuild();
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                hintText: 'Yderligere oplysninger (valgfrit)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Annuller'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          FilledButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Tak! Annoncen er blevet anmeldt.'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              Navigator.pop(context);
+            },
+            child: const Text('Anmeld'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -240,6 +305,24 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               ],
               _kv('Visninger', '${d.viewCount}'),
               _kv('Favoritter', '${d.favoriteCount}'),
+              const SizedBox(height: 24),
+              // Lignende biler
+              _SimilarListingsSection(
+                api: widget.api,
+                make: d.make,
+                model: d.model,
+                currentListingId: d.id,
+              ),
+              const SizedBox(height: 24),
+              // Anmeld annonce
+              OutlinedButton.icon(
+                icon: const Icon(Icons.report_outlined),
+                label: const Text('Anmeld annonce'),
+                onPressed: () => _showReportDialog(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red[500],
+                ),
+              ),
             ],
           );
         },
@@ -366,6 +449,171 @@ class _SellerRatingSection extends StatelessWidget {
     return SellerRatingFutureBuilder(
       ratingFuture: api.getSellerRating(sellerId),
       compact: false,
+    );
+  }
+}
+
+class _SimilarListingsSection extends StatelessWidget {
+  final ApiClient api;
+  final String make;
+  final String model;
+  final String currentListingId;
+
+  const _SimilarListingsSection({
+    required this.api,
+    required this.make,
+    required this.model,
+    required this.currentListingId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<ListingsPage>(
+      future: api.fetchListings(page: 1, pageSize: 20),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 300,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final allListings = snapshot.data!.items;
+
+        // Filtrer lignende biler (samme mærke og model, ekskluder nuværende)
+        final similarListings = allListings
+            .where(
+              (l) =>
+                  l.make == make &&
+                  l.model == model &&
+                  l.id != currentListingId,
+            )
+            .take(6)
+            .toList();
+
+        if (similarListings.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Lignende ${make} $model',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.75,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: similarListings.length,
+              itemBuilder: (context, index) {
+                final listing = similarListings[index];
+                return _SimilarListingCard(
+                  listing: listing,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ListingDetailsScreen(
+                          api: api,
+                          listingId: listing.id,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SimilarListingCard extends StatelessWidget {
+  final ListingSummary listing;
+  final VoidCallback onTap;
+
+  const _SimilarListingCard({required this.listing, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Billede
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+                child: listing.images.isNotEmpty
+                    ? Image.network(
+                        listing.images.first.url,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
+                            child: const Icon(Icons.directions_car),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: Theme.of(context).colorScheme.surfaceContainer,
+                        child: const Icon(Icons.directions_car),
+                      ),
+              ),
+            ),
+            // Info
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${listing.make} ${listing.model}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (listing.year != null)
+                    Text(
+                      '${listing.year}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${listing.priceDkk.toStringAsFixed(0)} kr.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
