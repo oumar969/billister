@@ -21,6 +21,11 @@ public sealed class BillisterDbContext
     public DbSet<DeviceToken> DeviceTokens => Set<DeviceToken>();
     public DbSet<SearchMatchNotification> SearchMatchNotifications => Set<SearchMatchNotification>();
     public DbSet<ChatThread> ChatThreads => Set<ChatThread>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+    public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<Payment> Payments => Set<Payment>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -115,6 +120,116 @@ public sealed class BillisterDbContext
         {
             b.HasKey(x => x.Id);
             b.HasIndex(x => new { x.ListingId, x.CreatedAtUtc });
+        });
+
+        builder.Entity<Review>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.HasIndex(x => x.ListingId);
+            b.HasIndex(x => x.SellerUserId);
+            b.HasIndex(x => x.BuyerUserId);
+            b.HasIndex(x => new { x.SellerUserId, x.CreatedAtUtc });
+
+            b.Property(x => x.Rating).IsRequired();
+            b.Property(x => x.Title).HasMaxLength(200);
+            b.Property(x => x.Comment).HasMaxLength(2000);
+
+            // Foreign keys
+            b.HasOne(x => x.Listing)
+                .WithMany()
+                .HasForeignKey(x => x.ListingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.Seller)
+                .WithMany()
+                .HasForeignKey(x => x.SellerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.Buyer)
+                .WithMany()
+                .HasForeignKey(x => x.BuyerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<SellerRating>(b =>
+        {
+            b.HasKey(x => x.SellerId);
+            b.HasOne(x => x.Seller)
+                .WithOne()
+                .HasForeignKey<SellerRating>(x => x.SellerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ChatMessage>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.HasIndex(x => x.ChatThreadId);
+            b.HasIndex(x => new { x.ChatThreadId, x.CreatedAtUtc });
+            b.HasIndex(x => new { x.SenderId, x.CreatedAtUtc });
+
+            b.Property(x => x.Content).IsRequired().HasMaxLength(5000);
+
+            // Foreign keys
+            b.HasOne(x => x.ChatThread)
+                .WithMany()
+                .HasForeignKey(x => x.ChatThreadId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasOne(x => x.Sender)
+                .WithMany()
+                .HasForeignKey(x => x.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.Receiver)
+                .WithMany()
+                .HasForeignKey(x => x.ReceiverId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Order>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.HasIndex(x => x.ListingId);
+            b.HasIndex(x => x.BuyerId);
+            b.HasIndex(x => x.SellerId);
+            b.HasIndex(x => new { x.BuyerId, x.CreatedAtUtc });
+
+            b.Property(x => x.Status).HasMaxLength(30);
+            b.Property(x => x.Amount).HasPrecision(18, 2);
+
+            // Foreign keys
+            b.HasOne(x => x.Listing)
+                .WithMany()
+                .HasForeignKey(x => x.ListingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.Buyer)
+                .WithMany()
+                .HasForeignKey(x => x.BuyerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.Seller)
+                .WithMany()
+                .HasForeignKey(x => x.SellerId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Payment>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.HasIndex(x => x.OrderId);
+            b.HasIndex(x => x.ExternalPaymentId).IsUnique();
+            b.HasIndex(x => new { x.Status, x.CreatedAtUtc });
+
+            b.Property(x => x.Status).HasMaxLength(30);
+            b.Property(x => x.Provider).HasMaxLength(50);
+            b.Property(x => x.Amount).HasPrecision(18, 2);
+
+            // Foreign key
+            b.HasOne(x => x.Order)
+                .WithMany()
+                .HasForeignKey(x => x.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

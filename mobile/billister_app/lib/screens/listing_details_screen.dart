@@ -4,7 +4,9 @@ import 'package:share_plus/share_plus.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../widgets/seller_rating_display.dart';
 import 'sell_car_screen.dart';
+import 'submit_review_screen.dart';
 
 class ListingDetailsScreen extends StatefulWidget {
   const ListingDetailsScreen({
@@ -32,10 +34,32 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   Future<void> _launch(Uri uri) async {
     if (!await launchUrl(uri)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kunne ikke åbne appen')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Kunne ikke åbne appen')));
       }
+    }
+  }
+
+  Future<void> _submitReview(ListingDetails listing) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => SubmitReviewScreen(
+          api: widget.api,
+          listingId: listing.id,
+          sellerId: listing.sellerId,
+          carTitle: listing.displayTitle,
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tak for din bedømmelse!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
@@ -161,6 +185,9 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
+              // Seller rating
+              _SellerRatingSection(api: widget.api, sellerId: d.sellerId),
+              const SizedBox(height: 16),
               _ContactButtons(
                 sellerPhone: d.sellerPhone,
                 onSell: () => Navigator.of(context).push<bool>(
@@ -174,6 +201,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                 onSms: d.sellerPhone != null
                     ? () => _launch(Uri(scheme: 'sms', path: d.sellerPhone))
                     : null,
+                onReview: () => _submitReview(d),
               ),
               const SizedBox(height: 16),
               _kv('Brændstof', d.fuelType),
@@ -247,12 +275,14 @@ class _ContactButtons extends StatelessWidget {
     required this.onSell,
     required this.onCall,
     required this.onSms,
+    required this.onReview,
   });
 
   final String? sellerPhone;
   final VoidCallback onSell;
   final VoidCallback? onCall;
   final VoidCallback? onSms;
+  final VoidCallback onReview;
 
   @override
   Widget build(BuildContext context) {
@@ -268,11 +298,12 @@ class _ContactButtons extends StatelessWidget {
                 label: const Text('Ring'),
                 style: onCall == null
                     ? FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onSurface,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onSurface,
                       )
                     : null,
               ),
@@ -285,11 +316,12 @@ class _ContactButtons extends StatelessWidget {
                 label: const Text('SMS'),
                 style: onSms == null
                     ? FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onSurface,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onSurface,
                       )
                     : null,
               ),
@@ -301,8 +333,8 @@ class _ContactButtons extends StatelessWidget {
           Text(
             'Sælger har ikke angivet telefonnummer',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
+              color: Theme.of(context).colorScheme.outline,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -312,7 +344,28 @@ class _ContactButtons extends StatelessWidget {
           icon: const Icon(Icons.sell_outlined),
           label: const Text('Sælg din bil'),
         ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: onReview,
+          icon: const Icon(Icons.star_outline),
+          label: const Text('Bedøm'),
+        ),
       ],
+    );
+  }
+}
+
+class _SellerRatingSection extends StatelessWidget {
+  final ApiClient api;
+  final String sellerId;
+
+  const _SellerRatingSection({required this.api, required this.sellerId});
+
+  @override
+  Widget build(BuildContext context) {
+    return SellerRatingFutureBuilder(
+      ratingFuture: api.getSellerRating(sellerId),
+      compact: false,
     );
   }
 }

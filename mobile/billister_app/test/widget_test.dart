@@ -6,12 +6,17 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:billister_app/main.dart';
+import 'package:billister_app/app.dart';
 
 void main() {
   testWidgets('App renders shell', (WidgetTester tester) async {
-    await tester.pumpWidget(const BillisterApp());
+    // Setup mock SharedPreferences
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(BillisterApp(sharedPreferences: prefs));
 
     // Bottom navigation is the main shell.
     expect(find.text('Hjem'), findsWidgets);

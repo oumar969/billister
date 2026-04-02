@@ -384,6 +384,216 @@ class ApiClient {
     throw ApiException(error, statusCode: res.statusCode);
   }
 
+  // Reviews
+  Future<void> submitReview({
+    required String listingId,
+    required String sellerId,
+    required int rating,
+    String? title,
+    String? comment,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/reviews', {'listingId': listingId, 'sellerId': sellerId}),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({
+          'rating': rating,
+          'title': title,
+          'comment': comment,
+        }),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) return;
+
+    if (res.statusCode == 400) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final error = json['error'] as String? ?? 'Anmeldelse mislykket';
+      throw ApiException(error, statusCode: 400);
+    }
+
+    throw ApiException(
+      'Anmeldelse mislykket (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<List<Review>> getSellerReviews(String sellerId, {int page = 1}) async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/reviews/seller/$sellerId', {'page': page.toString()}),
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final reviews = (json['reviews'] as List<dynamic>? ?? [])
+          .map((r) => Review.fromJson(r as Map<String, dynamic>))
+          .toList();
+      return reviews;
+    }
+
+    throw ApiException(
+      'Kan ikke hente anmeldelser',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<SellerRating> getSellerRating(String sellerId) async {
+    final res = await _send(
+      () => _http.get(_uri('/api/reviews/seller-rating/$sellerId')),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return SellerRating.fromJson(json);
+    }
+
+    throw ApiException(
+      'Kan ikke hente sælger rating',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<List<Review>> getListingReviews(String listingId) async {
+    final res = await _send(
+      () => _http.get(_uri('/api/reviews/listing/$listingId')),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as List<dynamic>;
+      return json
+          .map((r) => Review.fromJson(r as Map<String, dynamic>))
+          .toList();
+    }
+
+    throw ApiException(
+      'Kan ikke hente anmeldelser',
+      statusCode: res.statusCode,
+    );
+  }
+
+  // Orders
+  Future<Order> createOrder({
+    required String listingId,
+    required String sellerId,
+    required double amount,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/orders/create'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({
+          'listingId': listingId,
+          'sellerId': sellerId,
+          'amount': amount,
+        }),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return Order(
+        id: json['orderId'] as String,
+        listingId: listingId,
+        status: json['status'] as String? ?? 'pending',
+        amount: amount,
+        createdAtUtc: DateTime.now(),
+      );
+    }
+
+    throw ApiException('Ordre kunde ikke oprettes', statusCode: res.statusCode);
+  }
+
+  Future<Order> getOrder(String orderId) async {
+    final res = await _send(
+      () => _http.get(_uri('/api/orders/$orderId')),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return Order.fromJson(json);
+    }
+
+    throw ApiException('Ordre ikke fundet', statusCode: res.statusCode);
+  }
+
+  Future<List<Order>> getMyOrders() async {
+    final res = await _send(
+      () => _http.get(_uri('/api/orders/buyer/my-orders')),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as List<dynamic>;
+      return json
+          .map((o) => Order.fromJson(o as Map<String, dynamic>))
+          .toList();
+    }
+
+    throw ApiException('Kan ikke hente ordrer', statusCode: res.statusCode);
+  }
+
+  // Payments
+  Future<Payment> initiatePayment({
+    required String orderId,
+    required double amount,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/payments/initiate'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({'orderId': orderId, 'amount': amount}),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return Payment(
+        id: json['paymentId'] as String,
+        orderId: orderId,
+        amount: amount,
+        status: json['status'] as String? ?? 'pending',
+        provider: 'stripe',
+        createdAtUtc: DateTime.now(),
+        stripe_clientSecret: json['clientSecret'] as String?,
+        stripe_paymentIntentId: json['stripePaymentIntentId'] as String?,
+      );
+    }
+
+    throw ApiException(
+      'Betaling kunne ikke initialiseres',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> confirmPayment({
+    required String paymentId,
+    required String stripeSessionId,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/payments/confirm'),
+        headers: _jsonHeaders(includeAuth: false),
+        body: jsonEncode({
+          'paymentId': paymentId,
+          'stripeSessionId': stripeSessionId,
+        }),
+      ),
+    );
+
+    if (res.statusCode != 200) {
+      throw ApiException(
+        'Betaling kunne ikke bekræftes',
+        statusCode: res.statusCode,
+      );
+    }
+  }
+
   Future<ListingsPage> fetchListings({int page = 1, int pageSize = 20}) async {
     final res = await _send(
       () => _http.get(
@@ -1073,5 +1283,141 @@ class ApiClient {
       'Delete saved search failed (${res.statusCode})',
       statusCode: res.statusCode,
     );
+  }
+
+  // Chat Messaging
+  Future<ChatThread> startChat({required String listingId}) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/chats/start'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({'listingId': listingId}),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return ChatThread.fromJson(json);
+    }
+
+    throw ApiException('Chat kunne ikke startes', statusCode: res.statusCode);
+  }
+
+  Future<ChatMessage> sendMessage({
+    required String threadId,
+    required String content,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/chats/$threadId/messages'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({'content': content}),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 201) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return ChatMessage.fromJson(json);
+    }
+
+    throw ApiException('Besked kunne ikke sendes', statusCode: res.statusCode);
+  }
+
+  Future<List<ChatMessage>> getMessages({
+    required String threadId,
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/chats/$threadId/messages', {
+          'page': page.toString(),
+          'pageSize': pageSize.toString(),
+        }),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as List<dynamic>;
+      return json
+          .map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
+          .toList();
+    }
+
+    throw ApiException('Kunne ikke hente beskeder', statusCode: res.statusCode);
+  }
+
+  Future<void> markMessageAsRead({required String messageId}) async {
+    final res = await _send(
+      () => _http.put(
+        _uri('/api/chats/messages/$messageId/mark-read'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode != 204) {
+      throw ApiException(
+        'Kunne ikke markere besked som læst',
+        statusCode: res.statusCode,
+      );
+    }
+  }
+
+  Future<void> markThreadAsRead({required String threadId}) async {
+    final res = await _send(
+      () => _http.put(
+        _uri('/api/chats/$threadId/mark-all-read'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode != 204) {
+      throw ApiException(
+        'Kunne ikke markere tråd som læst',
+        statusCode: res.statusCode,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> getUnreadCount() async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/chats/unread-count'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+
+    throw ApiException(
+      'Kunne ikke hente ulæst antal',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<Payment> getPayment({required String paymentId}) async {
+    final res = await _send(
+      () => _http.get(
+        _uri('/api/payments/$paymentId'),
+        headers: _jsonHeaders(includeAuth: true),
+      ),
+      ensureValidToken: true,
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return Payment.fromJson(json);
+    }
+
+    throw ApiException('Betaling ikke fundet', statusCode: res.statusCode);
   }
 }

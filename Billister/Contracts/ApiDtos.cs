@@ -111,5 +111,104 @@ public static class ApiDtos
     public static class Chats
     {
         public sealed record StartChatRequest(Guid ListingId);
+
+        public sealed record ChatThreadDto(
+            Guid Id,
+            Guid ListingId,
+            Guid BuyerId,
+            Guid SellerId,
+            DateTime CreatedAtUtc);
+
+        public sealed record SendMessageRequest(
+            string Content);
+
+        public sealed record ChatMessageDto(
+            Guid Id,
+            Guid ChatThreadId,
+            Guid SenderId,
+            string SenderUsername,
+            string Content,
+            bool IsRead,
+            DateTime CreatedAtUtc,
+            DateTime? ReadAtUtc);
+
+        public sealed record MarkReadRequest(
+            Guid MessageId);
+
+        public sealed record UnreadCountDto(
+            int Total,
+            Dictionary<Guid, int> PerThread);
+    }
+
+    public static class Reviews
+    {
+        public sealed record CreateReviewRequest(
+            int Rating, // 1-5
+            string? Title,
+            string? Comment);
+
+        public sealed record ReviewDto(
+            Guid Id,
+            Guid ListingId,
+            Guid BuyerUserId,
+            string BuyerUsername,
+            int Rating,
+            string? Title,
+            string? Comment,
+            DateTime CreatedAtUtc);
+
+        public sealed record SellerRatingDto(
+            Guid SellerId,
+            int TotalReviews,
+            decimal AverageRating,
+            int FiveStarCount,
+            int FourStarCount,
+            int ThreeStarCount,
+            int TwoStarCount,
+            int OneStarCount);
+
+        public sealed record ReviewsPageDto(
+            List<ReviewDto> Reviews,
+            int Page,
+            int PageSize,
+            int TotalCount);
+    }
+
+    public static class Orders
+    {
+        public sealed record CreateOrderRequest(
+            Guid ListingId,
+            Guid SellerId,
+            decimal Amount);
+
+        public sealed record OrderDto(
+            Guid Id,
+            Guid ListingId,
+            string Status,
+            decimal Amount,
+            DateTime CreatedAtUtc,
+            DateTime? PaidAtUtc,
+            DateTime? UpdatedAtUtc);
+    }
+
+    public static class Payments
+    {
+        public sealed record InitiatePaymentRequest(
+            Guid OrderId,
+            decimal Amount);
+
+        public sealed record ConfirmPaymentRequest(
+            Guid PaymentId,
+            string StripeSessionId);
+
+        public sealed record PaymentDto(
+            Guid Id,
+            Guid OrderId,
+            decimal Amount,
+            string Status,
+            string Provider,
+            DateTime CreatedAtUtc,
+            DateTime? CompletedAtUtc);
     }
 }
+

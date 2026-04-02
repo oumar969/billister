@@ -3,6 +3,7 @@ using System;
 using Billister.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Billister.Migrations
 {
     [DbContext(typeof(BillisterDbContext))]
-    partial class BillisterDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401204325_AddReviewAndRatingSystem")]
+    partial class AddReviewAndRatingSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.20");
@@ -290,48 +293,6 @@ namespace Billister.Migrations
                     b.ToTable("CarListings");
                 });
 
-            modelBuilder.Entity("Billister.Models.ChatMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("ChatThreadId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("ReadAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("ReceiverId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChatThreadId");
-
-                    b.HasIndex("ReceiverId");
-
-                    b.HasIndex("ChatThreadId", "CreatedAtUtc");
-
-                    b.HasIndex("SenderId", "CreatedAtUtc");
-
-                    b.ToTable("ChatMessages");
-                });
-
             modelBuilder.Entity("Billister.Models.ChatThread", b =>
                 {
                     b.Property<Guid>("Id")
@@ -432,103 +393,6 @@ namespace Billister.Migrations
                     b.HasIndex("ListingId", "CreatedAtUtc");
 
                     b.ToTable("ListingViews");
-                });
-
-            modelBuilder.Entity("Billister.Models.Order", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("BuyerId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Invoice")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("PaidAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("SellerId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuyerId");
-
-                    b.HasIndex("ListingId");
-
-                    b.HasIndex("SellerId");
-
-                    b.HasIndex("BuyerId", "CreatedAtUtc");
-
-                    b.ToTable("Orders");
-                });
-
-            modelBuilder.Entity("Billister.Models.Payment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("CompletedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ExternalPaymentId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FailureReason")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExternalPaymentId")
-                        .IsUnique();
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("Status", "CreatedAtUtc");
-
-                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("Billister.Models.Review", b =>
@@ -833,71 +697,6 @@ namespace Billister.Migrations
                         .IsRequired();
 
                     b.Navigation("Listing");
-                });
-
-            modelBuilder.Entity("Billister.Models.ChatMessage", b =>
-                {
-                    b.HasOne("Billister.Models.ChatThread", "ChatThread")
-                        .WithMany()
-                        .HasForeignKey("ChatThreadId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Billister.Models.ApplicationUser", "Receiver")
-                        .WithMany()
-                        .HasForeignKey("ReceiverId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Billister.Models.ApplicationUser", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ChatThread");
-
-                    b.Navigation("Receiver");
-
-                    b.Navigation("Sender");
-                });
-
-            modelBuilder.Entity("Billister.Models.Order", b =>
-                {
-                    b.HasOne("Billister.Models.ApplicationUser", "Buyer")
-                        .WithMany()
-                        .HasForeignKey("BuyerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Billister.Models.CarListing", "Listing")
-                        .WithMany()
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Billister.Models.ApplicationUser", "Seller")
-                        .WithMany()
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Buyer");
-
-                    b.Navigation("Listing");
-
-                    b.Navigation("Seller");
-                });
-
-            modelBuilder.Entity("Billister.Models.Payment", b =>
-                {
-                    b.HasOne("Billister.Models.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("Billister.Models.Review", b =>

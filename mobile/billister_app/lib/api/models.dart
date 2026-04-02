@@ -222,6 +222,7 @@ class ListingsPage {
 
 class ListingDetails {
   final String id;
+  final String sellerId;
   final String make;
   final String model;
   final String? variant;
@@ -257,6 +258,7 @@ class ListingDetails {
 
   const ListingDetails({
     required this.id,
+    required this.sellerId,
     required this.make,
     required this.model,
     required this.variant,
@@ -298,6 +300,7 @@ class ListingDetails {
 
     return ListingDetails(
       id: json['id'] as String,
+      sellerId: json['sellerUserId'] as String? ?? '',
       make: (json['make'] as String?) ?? '',
       model: (json['model'] as String?) ?? '',
       variant: json['variant'] as String?,
@@ -506,6 +509,272 @@ class SearchNotification {
       body: (json['body'] as String?) ?? '',
       createdAtUtc:
           tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+}
+
+class Review {
+  final String id;
+  final String listingId;
+  final String buyerUserId;
+  final String buyerUsername;
+  final int rating; // 1-5
+  final String? title;
+  final String? comment;
+  final DateTime createdAtUtc;
+
+  const Review({
+    required this.id,
+    required this.listingId,
+    required this.buyerUserId,
+    required this.buyerUsername,
+    required this.rating,
+    this.title,
+    this.comment,
+    required this.createdAtUtc,
+  });
+
+  factory Review.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return Review(
+      id: json['id'] as String,
+      listingId: json['listingId'] as String,
+      buyerUserId: json['buyerUserId'] as String,
+      buyerUsername: (json['buyerUsername'] as String?) ?? 'Anonym',
+      rating: (json['rating'] as num).toInt(),
+      title: json['title'] as String?,
+      comment: json['comment'] as String?,
+      createdAtUtc:
+          tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+}
+
+class SellerRating {
+  final String sellerId;
+  final int totalReviews;
+  final double averageRating;
+  final int fiveStarCount;
+  final int fourStarCount;
+  final int threeStarCount;
+  final int twoStarCount;
+  final int oneStarCount;
+
+  const SellerRating({
+    required this.sellerId,
+    required this.totalReviews,
+    required this.averageRating,
+    required this.fiveStarCount,
+    required this.fourStarCount,
+    required this.threeStarCount,
+    required this.twoStarCount,
+    required this.oneStarCount,
+  });
+
+  factory SellerRating.fromJson(Map<String, dynamic> json) {
+    return SellerRating(
+      sellerId: json['sellerId'] as String,
+      totalReviews: (json['totalReviews'] as num).toInt(),
+      averageRating: (json['averageRating'] as num).toDouble(),
+      fiveStarCount: (json['fiveStarCount'] as num).toInt(),
+      fourStarCount: (json['fourStarCount'] as num).toInt(),
+      threeStarCount: (json['threeStarCount'] as num).toInt(),
+      twoStarCount: (json['twoStarCount'] as num).toInt(),
+      oneStarCount: (json['oneStarCount'] as num).toInt(),
+    );
+  }
+}
+
+class Order {
+  final String id;
+  final String listingId;
+  final String status; // pending, paid, shipped, completed
+  final double amount;
+  final DateTime createdAtUtc;
+  final DateTime? paidAtUtc;
+  final DateTime? updatedAtUtc;
+
+  const Order({
+    required this.id,
+    required this.listingId,
+    required this.status,
+    required this.amount,
+    required this.createdAtUtc,
+    this.paidAtUtc,
+    this.updatedAtUtc,
+  });
+
+  factory Order.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return Order(
+      id: json['id'] as String,
+      listingId: json['listingId'] as String,
+      status: json['status'] as String? ?? 'pending',
+      amount: (json['amount'] as num).toDouble(),
+      createdAtUtc:
+          tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+      paidAtUtc: tryDate('paidAtUtc'),
+      updatedAtUtc: tryDate('updatedAtUtc'),
+    );
+  }
+
+  String get statusDanish {
+    switch (status) {
+      case 'pending':
+        return 'Afventer betaling';
+      case 'paid':
+        return 'Betalt';
+      case 'shipped':
+        return 'Sendt';
+      case 'completed':
+        return 'Afsluttet';
+      case 'cancelled':
+        return 'Annulleret';
+      default:
+        return status;
+    }
+  }
+}
+
+class Payment {
+  final String id;
+  final String orderId;
+  final double amount;
+  final String status; // pending, processing, succeeded, failed
+  final String provider; // stripe, mobilepay, etc
+  final DateTime createdAtUtc;
+  final DateTime? completedAtUtc;
+  final String? stripe_clientSecret; // For Stripe PaymentIntent
+  final String? stripe_paymentIntentId; // For Stripe PaymentIntent ID
+
+  const Payment({
+    required this.id,
+    required this.orderId,
+    required this.amount,
+    required this.status,
+    required this.provider,
+    required this.createdAtUtc,
+    this.completedAtUtc,
+    this.stripe_clientSecret,
+    this.stripe_paymentIntentId,
+  });
+
+  factory Payment.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return Payment(
+      id: json['id'] as String,
+      orderId: json['orderId'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      status: json['status'] as String? ?? 'pending',
+      provider: json['provider'] as String? ?? 'stripe',
+      createdAtUtc:
+          tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+      completedAtUtc: tryDate('completedAtUtc'),
+      stripe_clientSecret: json['clientSecret'] as String?,
+      stripe_paymentIntentId: json['stripePaymentIntentId'] as String?,
+    );
+  }
+
+  String get statusDanish {
+    switch (status) {
+      case 'pending':
+        return 'Afventer';
+      case 'processing':
+        return 'Behandler';
+      case 'succeeded':
+        return 'Godkendt';
+      default:
+        return status;
+    }
+  }
+}
+
+class ChatThread {
+  final String id;
+  final String listingId;
+  final String buyerId;
+  final String sellerId;
+  final DateTime createdAtUtc;
+
+  const ChatThread({
+    required this.id,
+    required this.listingId,
+    required this.buyerId,
+    required this.sellerId,
+    required this.createdAtUtc,
+  });
+
+  factory ChatThread.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return ChatThread(
+      id: json['id'] as String,
+      listingId: json['listingId'] as String,
+      buyerId: json['buyerId'] as String,
+      sellerId: json['sellerId'] as String,
+      createdAtUtc:
+          tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+}
+
+class ChatMessage {
+  final String id;
+  final String chatThreadId;
+  final String senderId;
+  final String senderUsername;
+  final String content;
+  final bool isRead;
+  final DateTime createdAtUtc;
+  final DateTime? readAtUtc;
+
+  const ChatMessage({
+    required this.id,
+    required this.chatThreadId,
+    required this.senderId,
+    required this.senderUsername,
+    required this.content,
+    required this.isRead,
+    required this.createdAtUtc,
+    this.readAtUtc,
+  });
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    DateTime? tryDate(String key) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
+      return null;
+    }
+
+    return ChatMessage(
+      id: json['id'] as String,
+      chatThreadId: json['chatThreadId'] as String,
+      senderId: json['senderId'] as String,
+      senderUsername: (json['senderUsername'] as String?) ?? 'Ukendt',
+      content: (json['content'] as String?) ?? '',
+      isRead: (json['isRead'] as bool?) ?? false,
+      createdAtUtc:
+          tryDate('createdAtUtc') ?? DateTime.fromMillisecondsSinceEpoch(0),
+      readAtUtc: tryDate('readAtUtc'),
     );
   }
 }

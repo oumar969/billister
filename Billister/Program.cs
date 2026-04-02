@@ -83,6 +83,20 @@ builder.Services.AddScoped<IMotorregisterService, MotorregisterService>();
 builder.Services.AddScoped<ISavedSearchNotifier, SavedSearchNotifier>();
 builder.Services.AddScoped<IInputValidationService, InputValidationService>();
 builder.Services.AddScoped<IEmailService, MockEmailService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IPaymentService, StripePaymentService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+
+// Real-time messaging with SignalR
+builder.Services.AddSignalR();
+
+// Stripe payment configuration
+var stripeApiKey = builder.Configuration["Stripe:ApiKey"];
+if (!string.IsNullOrEmpty(stripeApiKey))
+{
+    Stripe.StripeConfiguration.ApiKey = stripeApiKey;
+}
 
 var app = builder.Build();
 
@@ -211,9 +225,9 @@ using (var scope = app.Services.CreateScope())
     if (app.Environment.IsDevelopment())
     {
         var devAdminEmail = builder.Configuration["DevAdmin:Email"] ?? "admin@billister.local";
-        var devAdminPassword = builder.Configuration["DevAdmin:Password"] ?? "Admin1234";
+        var devAdminPassword = builder.Configuration["DevAdmin:Password"] ?? "Admin";
         var devUserEmail = builder.Configuration["DevUser:Email"] ?? "user@billister.local";
-        var devUserPassword = builder.Configuration["DevUser:Password"] ?? "User1234";
+        var devUserPassword = builder.Configuration["DevUser:Password"] ?? "User";
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
 
@@ -324,5 +338,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<Billister.Services.ChatHub>("/hubs/chat");
 
 app.Run();
