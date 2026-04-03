@@ -46,8 +46,49 @@ public sealed class VehiclesController : ControllerBase
     [HttpGet("plate/{licensePlate}")]
     public async Task<ActionResult<object>> LookupPlate([FromRoute] string licensePlate, CancellationToken ct)
     {
-        var result = await _motor.LookupByPlateAsync(licensePlate, ct);
-        if (result is null) return NotFound();
-        return Ok(result);
+        if (string.IsNullOrWhiteSpace(licensePlate))
+        {
+            return BadRequest(new { error = "License plate is required" });
+        }
+
+        try
+        {
+            var vehicle = await _motor.LookupByPlateAsync(licensePlate, ct);
+
+            if (vehicle == null)
+            {
+                return NotFound(new
+                {
+                    error = "Køretøj ikke fundet",
+                    message = $"No vehicle found for plate: {licensePlate}"
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                data = vehicle
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                error = "Server error",
+                message = ex.Message
+            });
+        }
+    }
+
+    [HttpGet("debug/plate/{licensePlate}")]
+    public async Task<ActionResult<object>> DebugLookupPlate([FromRoute] string licensePlate, CancellationToken ct)
+    {
+        // For debugging motorregister scraping
+        return Ok(new
+        {
+            plate = licensePlate,
+            message = "Use /api/vehicles/plate/{plate} for actual lookup",
+            hint = "Check backend logs for scraping details"
+        });
     }
 }

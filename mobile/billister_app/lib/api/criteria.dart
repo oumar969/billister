@@ -1,24 +1,24 @@
 class ListingFilterCriteria {
   final String? q;
-  
+
   // Sale type
   final bool? isLeasing;
   final List<String>? sellerTypes; // "private", "dealer"
   final List<String>? saleTypes; // "commission", "formidling"
-  
+
   // Make / Model
   final String? make;
   final String? model;
   final List<String>? makes;
   final List<String>? models;
-  
+
   // Body type
   final List<String>? bodyTypes;
-  
+
   // Fuel & Transmission
   final List<String>? fuelTypes;
   final List<String>? transmissions;
-  
+
   // Price
   final int? yearMin;
   final int? yearMax;
@@ -26,10 +26,10 @@ class ListingFilterCriteria {
   final int? firstRegistrationYearMax;
   final int? mileageMin;
   final int? mileageMax;
-  
+
   final num? priceMin;
   final num? priceMax;
-  
+
   // Performance
   final int? horsepowerMin;
   final int? horsepowerMax;
@@ -37,12 +37,12 @@ class ListingFilterCriteria {
   final int? kilowattsMax;
   final int? rangeMin;
   final int? rangeMax;
-  
+
   // Features
   final bool? hasFourWheelDrive;
   final bool? hasTowHook;
   final List<String>? requiredFeatures;
-  
+
   final String? sortBy;
 
   const ListingFilterCriteria({
@@ -170,8 +170,10 @@ class ListingFilterCriteria {
     // Year ranges
     if (yearMin != null) map['yearMin'] = yearMin;
     if (yearMax != null) map['yearMax'] = yearMax;
-    if (firstRegistrationYearMin != null) map['firstRegistrationYearMin'] = firstRegistrationYearMin;
-    if (firstRegistrationYearMax != null) map['firstRegistrationYearMax'] = firstRegistrationYearMax;
+    if (firstRegistrationYearMin != null)
+      map['firstRegistrationYearMin'] = firstRegistrationYearMin;
+    if (firstRegistrationYearMax != null)
+      map['firstRegistrationYearMax'] = firstRegistrationYearMax;
 
     // Mileage
     if (mileageMin != null) map['mileageMin'] = mileageMin;

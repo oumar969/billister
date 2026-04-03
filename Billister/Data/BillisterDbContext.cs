@@ -26,6 +26,7 @@ public sealed class BillisterDbContext
     public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<LicensePlateLookupCache> LicensePlateLookupCaches => Set<LicensePlateLookupCache>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

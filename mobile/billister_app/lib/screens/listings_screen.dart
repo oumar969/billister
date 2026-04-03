@@ -109,18 +109,26 @@ class _ListingsScreenState extends State<ListingsScreen> {
       q: _qCtrl.text,
       /* Sale type filters */
       isLeasing: _isLeasing ? true : null,
-      sellerTypes: _selectedSellerTypes.isEmpty ? null : _selectedSellerTypes.toList(),
-      saleTypes: _selectedSaleTypes.isEmpty ? null : _selectedSaleTypes.toList(),
+      sellerTypes: _selectedSellerTypes.isEmpty
+          ? null
+          : _selectedSellerTypes.toList(),
+      saleTypes: _selectedSaleTypes.isEmpty
+          ? null
+          : _selectedSaleTypes.toList(),
       /* Make / Model */
       makes: _selectedMakes.map((x) => x.name).toList(growable: false),
       models: _selectedModels.map((x) => x.name).toList(growable: false),
       /* Body Type */
-      bodyTypes: _selectedBodyTypes.isEmpty ? null : _selectedBodyTypes.toList(),
+      bodyTypes: _selectedBodyTypes.isEmpty
+          ? null
+          : _selectedBodyTypes.toList(),
       /* Fuel & Transmission */
       fuelTypes: _selectedFuelType == null
           ? null
           : <String>[_selectedFuelType!],
-      transmissions: _selectedTransmissionTypes.isEmpty ? null : _selectedTransmissionTypes.toList(),
+      transmissions: _selectedTransmissionTypes.isEmpty
+          ? null
+          : _selectedTransmissionTypes.toList(),
       /* Price */
       priceMin: _priceMinCtrl.text.trim().isEmpty
           ? null
@@ -1472,7 +1480,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
             const SizedBox(height: 8),
             // Modelår range slider
             ExpansionTile(
-              title: Text('Modelår: ${_yearRange.start.round()} - ${_yearRange.end.round()}'),
+              title: Text(
+                'Modelår: ${_yearRange.start.round()} - ${_yearRange.end.round()}',
+              ),
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1480,7 +1490,10 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     values: _yearRange,
                     min: _yearMinBound,
                     max: _yearMaxBound,
-                    divisions: (_yearMaxBound - _yearMinBound).round().clamp(1, 200),
+                    divisions: (_yearMaxBound - _yearMinBound).round().clamp(
+                      1,
+                      200,
+                    ),
                     labels: RangeLabels(
                       _yearRange.start.round().toString(),
                       _yearRange.end.round().toString(),
@@ -1494,7 +1507,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
             const SizedBox(height: 8),
             // Årgang (1. registrering) range slider
             ExpansionTile(
-              title: Text('Årgang: ${_firstRegistrationYearRange.start.round()} - ${_firstRegistrationYearRange.end.round()}'),
+              title: Text(
+                'Årgang: ${_firstRegistrationYearRange.start.round()} - ${_firstRegistrationYearRange.end.round()}',
+              ),
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),

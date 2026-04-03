@@ -87,6 +87,15 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPaymentService, StripePaymentService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<LicensePlateLookupService>();
+
+// HTTP client for external services
+builder.Services.AddHttpClient<LicensePlateLookupService>()
+    .ConfigureHttpClient(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(10);
+        client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml");
+    });
 
 // Real-time messaging with SignalR
 builder.Services.AddSignalR();

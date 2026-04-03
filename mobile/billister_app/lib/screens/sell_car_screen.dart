@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../api/api_client.dart';
@@ -40,6 +42,7 @@ class _SellCarScreenState extends State<SellCarScreen> {
   String _fuelType = _fuelTypeOptions.first;
   String _transmission = _transmissionOptions.first;
 
+  final _licensePlateCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _yearCtrl = TextEditingController();
   final _mileageCtrl = TextEditingController();
@@ -62,6 +65,7 @@ class _SellCarScreenState extends State<SellCarScreen> {
 
   @override
   void dispose() {
+    _licensePlateCtrl.dispose();
     _priceCtrl.dispose();
     _yearCtrl.dispose();
     _mileageCtrl.dispose();
@@ -123,6 +127,171 @@ class _SellCarScreenState extends State<SellCarScreen> {
 
   VehicleModel? get _selectedModel =>
       _models.where((x) => x.id == _modelId).firstOrNull;
+
+  void _showPlateSearchDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Søg nummerpladen'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _licensePlateCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Nummerplade',
+                hintText: 'f.eks. AB12345',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Søgningen tager 3-4 sekunder da den trækker data fra det danske motorregister.',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuller'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _lookupPlateData();
+            },
+            child: const Text('Søg'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _lookupPlateData() async {
+    final plate = _licensePlateCtrl.text.trim();
+    if (plate.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vend indtast en nummerplade')),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _error = null);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 8),
+              Expanded(child: Text('Søger efter nummerplade...')),
+            ],
+          ),
+          duration: Duration(seconds: 5),
+        ),
+      );
+
+      // Call backend API to lookup vehicle
+      final uri = Uri.parse(
+        '${widget.api.baseUrl}/api/vehicles/plate/$plate',
+      ).replace(scheme: 'http', host: 'localhost', port: 5012);
+
+      final response = await http
+          .get(uri)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw Exception('Timeout ved søgning'),
+          );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final data = json['data'] as Map<String, dynamic>?;
+
+        if (data != null) {
+          // Find and select make
+          final makeName = data['make'] as String?;
+          if (makeName != null) {
+            final make =
+                _makes.firstWhere(
+                      (m) => m.name.toLowerCase() == makeName.toLowerCase(),
+                      orElse: () => null as dynamic,
+                    )
+                    as VehicleMake?;
+            if (make != null) {
+              setState(() => _makeId = make.id);
+              await _loadModelsForMake(make.id);
+
+              // Find and select model
+              final modelName = data['model'] as String?;
+              if (modelName != null) {
+                // Wait a bit for models to load
+                await Future.delayed(const Duration(milliseconds: 500));
+                final model =
+                    _models.firstWhere(
+                          (m) =>
+                              m.name.toLowerCase() == modelName.toLowerCase(),
+                          orElse: () => null as dynamic,
+                        )
+                        as VehicleModel?;
+                if (model != null) {
+                  setState(() => _modelId = model.id);
+                }
+              }
+            }
+          }
+
+          // Auto-fill other fields
+          setState(() {
+            final year = data['year'];
+            if (year != null) _yearCtrl.text = year.toString();
+
+            final km = data['kilometers'];
+            if (km != null) _mileageCtrl.text = km.toString();
+
+            final fuel = data['fuelType'];
+            if (fuel != null &&
+                _fuelTypeOptions.contains(fuel.toString().toLowerCase())) {
+              _fuelType = fuel.toString().toLowerCase();
+            }
+
+            final trans = data['transmission'];
+            if (trans != null) {
+              final transLower = trans.toString().toLowerCase();
+              if (transLower.contains('auto') ||
+                  transLower.contains('automat')) {
+                _transmission = 'automat';
+              } else if (transLower.contains('manuel') ||
+                  transLower.contains('manual')) {
+                _transmission = 'manuel';
+              }
+            }
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✓ Fundet: ${data['make']} ${data['model']}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          setState(() => _error = 'Bil ikke fundet for nummerplade: $plate');
+        }
+      } else if (response.statusCode == 404) {
+        setState(() => _error = 'Bil ikke fundet for nummerplade: $plate');
+      } else {
+        setState(() => _error = 'Fejl ved søgning: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() => _error = 'Fejl ved søgning: ${e.toString()}');
+    }
+  }
 
   Future<void> _submit() async {
     final token = widget.api.token;
@@ -297,7 +466,48 @@ class _SellCarScreenState extends State<SellCarScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
+                // License plate lookup section
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Eller søg efter nummerplade',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _licensePlateCtrl,
+                                decoration: const InputDecoration(
+                                  hintText: 'f.eks. AB12345',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.text,
+                                textInputAction: TextInputAction.search,
+                                onSubmitted: (_) => _showPlateSearchDialog(),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: _showPlateSearchDialog,
+                              child: const Text('Søg'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _priceCtrl,
                   keyboardType: TextInputType.number,
