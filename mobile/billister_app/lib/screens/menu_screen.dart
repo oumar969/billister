@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import 'give_feedback_screen.dart';
 import 'login_screen.dart';
 import 'my_listings_screen.dart';
 import 'saved_searches_screen.dart';
+import 'search_history_screen.dart';
 import 'sell_car_screen.dart';
+import 'send_idea_screen.dart';
+import 'user_settings_screen.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key, required this.api, this.onAuthChanged});
@@ -147,6 +151,18 @@ class MenuScreen extends StatelessWidget {
             ),
             _menuTile(
               context,
+              icon: Icons.history_outlined,
+              title: 'Seneste søgninger',
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SearchHistoryScreen(),
+                  ),
+                );
+              },
+            ),
+            _menuTile(
+              context,
               icon: Icons.article_outlined,
               title: 'Bilbasen blog',
               onTap: () => _comingSoon(context),
@@ -155,7 +171,15 @@ class MenuScreen extends StatelessWidget {
               context,
               icon: Icons.settings_outlined,
               title: 'Kontoindstillinger',
-              onTap: () => _comingSoon(context),
+              onTap: () async {
+                final ok = await _ensureLoggedIn(context);
+                if (!ok || !context.mounted) return;
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => UserSettingsScreen(api: api),
+                  ),
+                );
+              },
             ),
             _menuTile(
               context,
@@ -180,13 +204,25 @@ class MenuScreen extends StatelessWidget {
               context,
               icon: Icons.lightbulb_outline,
               title: 'Send en idé',
-              onTap: () => _comingSoon(context),
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SendIdeaScreen(api: api),
+                  ),
+                );
+              },
             ),
             _menuTile(
               context,
               icon: Icons.chat_bubble_outline,
               title: 'Giv feedback',
-              onTap: () => _comingSoon(context),
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => GiveFeedbackScreen(api: api),
+                  ),
+                );
+              },
             ),
             const Divider(height: 1),
             _menuTile(

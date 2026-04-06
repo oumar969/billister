@@ -384,6 +384,23 @@ class ApiClient {
     throw ApiException(error, statusCode: res.statusCode);
   }
 
+  Future<http.Response> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    return await _send(
+      () => _http.post(
+        _uri('/api/auth/change-password'),
+        headers: _jsonHeaders(includeAuth: true),
+        body: jsonEncode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        }),
+      ),
+      ensureValidToken: true,
+    );
+  }
+
   // Reviews
   Future<void> submitReview({
     required String listingId,
@@ -1261,6 +1278,35 @@ class ApiClient {
 
     throw ApiException(
       'Clear notifications failed (${res.statusCode})',
+      statusCode: res.statusCode,
+    );
+  }
+
+  Future<void> submitFeedback({
+    required String idea,
+    required String email,
+  }) async {
+    final res = await _send(
+      () => _http.post(
+        _uri('/api/feedback'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({
+          'idea': idea,
+          'email': email,
+        }),
+      ),
+    );
+
+    if (res.statusCode == 200 || res.statusCode == 201) return;
+
+    if (res.statusCode == 400) {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      final error = json['error'] as String? ?? 'Indsendelse mislykket';
+      throw ApiException(error, statusCode: 400);
+    }
+
+    throw ApiException(
+      'Indsendelse mislykket (${res.statusCode})',
       statusCode: res.statusCode,
     );
   }

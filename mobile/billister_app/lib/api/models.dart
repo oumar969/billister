@@ -778,3 +778,45 @@ class ChatMessage {
     );
   }
 }
+
+/// Search history entry for license plate lookups.
+class SearchHistory {
+  final String licensePlate;
+  final String? make;
+  final String? model;
+  final int? year;
+  final DateTime searchedAtUtc;
+
+  const SearchHistory({
+    required this.licensePlate,
+    required this.make,
+    required this.model,
+    required this.year,
+    required this.searchedAtUtc,
+  });
+
+  factory SearchHistory.fromJson(Map<String, dynamic> json) {
+    return SearchHistory(
+      licensePlate: json['licensePlate'] as String,
+      make: json['make'] as String?,
+      model: json['model'] as String?,
+      year: (json['year'] as num?)?.toInt(),
+      searchedAtUtc: DateTime.parse(json['searchedAtUtc'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'licensePlate': licensePlate,
+    'make': make,
+    'model': model,
+    'year': year,
+    'searchedAtUtc': searchedAtUtc.toIso8601String(),
+  };
+
+  String get displayTitle {
+    if (make != null && model != null) {
+      return '$make $model';
+    }
+    return licensePlate;
+  }
+}

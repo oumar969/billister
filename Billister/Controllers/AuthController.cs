@@ -268,4 +268,37 @@ public sealed class AuthController : ControllerBase
 
         return Ok(new { message = "Adgangskode er nulstillet. Du kan nu logge ind med din nye adgangskode" });
     }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ApiDtos.Auth.ChangePasswordRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.CurrentPassword) || string.IsNullOrWhiteSpace(req.NewPassword))
+            return BadRequest(new { error = "Nuværende og ny adgangskode er påkrævet" });
+
+        var passwordValidation = _validation.ValidatePassword(req.NewPassword);
+        if (!passwordValidation.IsValid)
+            return BadRequest(new { error = passwordValidation.ErrorMessage });
+
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { error = "Bruger ikke fundet" });
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+            return Unauthorized(new { error = "Bruger ikke fundet" });
+
+        var passwordCorrect = await _userManager.CheckPasswordAsync(user, req.CurrentPassword);
+        if (!passwordCorrect)
+            return Unauthorized(new { error = "Nuværende adgangskode er forkert" });
+
+        var changeResult = await _userManager.ChangePasswordAsync(user, req.CurrentPassword, req.NewPassword);
+        if (!changeResult.Succeeded)
+        {
+            var errors = string.Join(", ", changeResult.Errors.Select(e => e.Description));
+            return BadRequest(new { error = errors });
+        }
+
+        return Ok(new { message = "Adgangskode skiftet succesfuldt" });
+    }
 }

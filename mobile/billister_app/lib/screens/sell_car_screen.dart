@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
@@ -56,11 +57,15 @@ class _SellCarScreenState extends State<SellCarScreen> {
   String? _uploadStatus;
 
   List<XFile> _selectedImages = [];
+  List<SearchHistory> _searchHistory = [];
+  static const String _searchHistoryKey = 'search_history';
+  static const int _maxSearchHistory = 10;
 
   @override
   void initState() {
     super.initState();
     _loadMakes();
+    _loadSearchHistory();
   }
 
   @override
@@ -127,6 +132,57 @@ class _SellCarScreenState extends State<SellCarScreen> {
 
   VehicleModel? get _selectedModel =>
       _models.where((x) => x.id == _modelId).firstOrNull;
+
+  Future<void> _loadSearchHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = prefs.getStringList(_searchHistoryKey) ?? [];
+      final history = jsonList
+          .map(
+            (json) => SearchHistory.fromJson(
+              jsonDecode(json) as Map<String, dynamic>,
+            ),
+          )
+          .toList();
+      setState(() => _searchHistory = history);
+    } catch (e) {
+      debugPrint('Failed to load search history: $e');
+    }
+  }
+
+  Future<void> _addToSearchHistory(SearchHistory entry) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final newHistory = [
+        entry,
+        ..._searchHistory,
+      ].take(_maxSearchHistory).toList();
+      final jsonList = newHistory.map((h) => jsonEncode(h.toJson())).toList();
+      await prefs.setStringList(_searchHistoryKey, jsonList);
+      setState(() => _searchHistory = newHistory);
+    } catch (e) {
+      debugPrint('Failed to save search history: $e');
+    }
+  }
+
+  void _restoreFromHistory(SearchHistory entry) {
+    _licensePlateCtrl.text = entry.licensePlate;
+    // Merge history entry data - don't refetch, just restore UI state
+    setState(() {
+      final year = entry.year;
+      if (year != null) _yearCtrl.text = year.toString();
+    });
+  }
+
+  Future<void> _clearSearchHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_searchHistoryKey);
+      setState(() => _searchHistory = []);
+    } catch (e) {
+      debugPrint('Failed to clear search history: $e');
+    }
+  }
 
   void _showPlateSearchDialog() {
     showDialog<void>(
@@ -278,6 +334,17 @@ class _SellCarScreenState extends State<SellCarScreen> {
             SnackBar(
               content: Text('✓ Fundet: ${data['make']} ${data['model']}'),
               backgroundColor: Colors.green,
+            ),
+          );
+
+          // Save to search history
+          await _addToSearchHistory(
+            SearchHistory(
+              licensePlate: plate,
+              make: data['make'] as String?,
+              model: data['model'] as String?,
+              year: (data['year'] as num?)?.toInt(),
+              searchedAtUtc: DateTime.now().toUtc(),
             ),
           );
         } else {
@@ -503,6 +570,110 @@ class _SellCarScreenState extends State<SellCarScreen> {
                             ),
                           ],
                         ),
+                        // Search history section
+                        if (_searchHistory.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Seneste søgninger',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Slet historik?'),
+                                      content: const Text(
+                                        'Er du sikker på at du vil slette all søgehistorie?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text('Annuller'),
+                                        ),
+                                        FilledButton(
+                                          onPressed: () {
+                                            _clearSearchHistory();
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text('Slet'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  'Slet historik',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _searchHistory
+                                .map(
+                                  (entry) => Material(
+                                    child: Ink(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.outline,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: InkWell(
+                                        onTap: () => _restoreFromHistory(entry),
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                entry.displayTitle,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              Text(
+                                                entry.licensePlate,
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
                       ],
                     ),
                   ),

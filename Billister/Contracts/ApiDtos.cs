@@ -20,6 +20,7 @@ public static class ApiDtos
         // Password Reset
         public sealed record ForgotPasswordRequest(string Email);
         public sealed record ResetPasswordRequest(string Token, string NewPassword);
+        public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
     }
 
     public static class Listings
@@ -209,6 +210,11 @@ public static class ApiDtos
             string Provider,
             DateTime CreatedAtUtc,
             DateTime? CompletedAtUtc);
+    }
+
+    public static class Feedback
+    {
+        public sealed record SubmitFeedbackRequest(string Idea, string Email);
     }
 }
 
