@@ -206,9 +206,7 @@ class MenuScreen extends StatelessWidget {
               title: 'Send en idé',
               onTap: () async {
                 await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => SendIdeaScreen(api: api),
-                  ),
+                  MaterialPageRoute(builder: (_) => SendIdeaScreen(api: api)),
                 );
               },
             ),

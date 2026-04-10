@@ -71,9 +71,9 @@ class _SearchHistoryScreenState extends State<SearchHistoryScreen> {
       await prefs.remove(_searchHistoryKey);
       setState(() => _searchHistory = []);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Søgehistorik slettet')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Søgehistorik slettet')));
       }
     } catch (e) {
       debugPrint('Failed to clear search history: $e');
@@ -130,68 +130,68 @@ class _SearchHistoryScreenState extends State<SearchHistoryScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _searchHistory.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.history_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ingen søgehistorik',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Søgninger efter nummerplader gemmes her',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.separated(
+              itemCount: _searchHistory.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final entry = _searchHistory[index];
+                return ListTile(
+                  leading: Icon(
+                    Icons.car_rental_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: Text(entry.displayTitle),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.history_outlined,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 4),
                       Text(
-                        'Ingen søgehistorik',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        entry.licensePlate.toUpperCase(),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 2),
                       Text(
-                        'Søgninger efter nummerplader gemmes her',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                        _formatDate(entry.searchedAtUtc.toLocal()),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
-                )
-              : ListView.separated(
-                  itemCount: _searchHistory.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final entry = _searchHistory[index];
-                    return ListTile(
-                      leading: Icon(
-                        Icons.car_rental_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      title: Text(entry.displayTitle),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text(
-                            entry.licensePlate.toUpperCase(),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).colorScheme.outline,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _formatDate(entry.searchedAtUtc.toLocal()),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                          ),
-                        ],
-                      ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    );
-                  },
-                ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                );
+              },
+            ),
     );
   }
 }

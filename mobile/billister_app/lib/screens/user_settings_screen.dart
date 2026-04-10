@@ -16,16 +16,14 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
   bool _loading = false;
 
   void _comingSoon() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Kommer snart')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Kommer snart')));
   }
 
   void _openChangePassword() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ChangePasswordScreen(api: widget.api),
-      ),
+      MaterialPageRoute(builder: (_) => ChangePasswordScreen(api: widget.api)),
     );
   }
 
@@ -34,9 +32,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
     final user = widget.api.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kontoindstillinger'),
-      ),
+      appBar: AppBar(title: const Text('Kontoindstillinger')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -57,16 +53,18 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                         children: [
                           CircleAvatar(
                             radius: 34,
-                            backgroundColor:
-                                Theme.of(context).colorScheme.surfaceContainerHighest,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                             child: Text(
                               user.username.isNotEmpty
                                   ? user.username[0].toUpperCase()
                                   : '?',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
                           ),
@@ -77,7 +75,9 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                               children: [
                                 Text(
                                   user.username,
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -94,7 +94,9 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                           ),
                           Icon(
                             Icons.chevron_right,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ],
                       ),
@@ -132,9 +134,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline,
-          ),
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Material(
@@ -149,7 +149,9 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                     ),
                     padding: const EdgeInsets.all(12),
                     child: Icon(
@@ -169,12 +171,12 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                         const SizedBox(height: 4),
                         Text(
                           subtitle,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),

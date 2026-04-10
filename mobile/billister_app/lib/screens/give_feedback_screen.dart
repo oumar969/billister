@@ -91,10 +91,7 @@ class _GiveFeedbackScreenState extends State<GiveFeedbackScreen> {
             const SizedBox(height: 8),
             const Text(
               'Har du forslag til forbedringer til den nye søgeoplevelse?',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -128,9 +125,7 @@ class _GiveFeedbackScreenState extends State<GiveFeedbackScreen> {
                 ),
                 child: Text(
                   _error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
               const SizedBox(height: 16),

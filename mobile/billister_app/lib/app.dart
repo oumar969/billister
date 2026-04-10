@@ -71,7 +71,7 @@ class _BillisterAppState extends State<BillisterApp> {
   @override
   Widget build(BuildContext context) {
     final scheme = ColorScheme.fromSeed(
-      seedColor: Colors.indigo,
+      seedColor: const Color(0xFF3E6AE1), // Tesla Electric Blue
       brightness: Brightness.light,
     );
 
@@ -86,15 +86,106 @@ class _BillisterAppState extends State<BillisterApp> {
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: scheme,
+          scaffoldBackgroundColor: const Color(0xFFFFFFFF), // Tesla White
           appBarTheme: AppBarTheme(
-            backgroundColor: scheme.surface,
-            foregroundColor: scheme.onSurface,
-            surfaceTintColor: scheme.surface,
+            backgroundColor: const Color(0xFFFFFFFF),
+            foregroundColor: const Color(0xFF171A20), // Tesla Carbon Dark
+            surfaceTintColor: const Color(0xFFFFFFFF),
             scrolledUnderElevation: 0,
+            elevation: 0,
           ),
           floatingActionButtonTheme: FloatingActionButtonThemeData(
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
+            backgroundColor: const Color(0xFF3E6AE1), // Tesla Blue
+            foregroundColor: Colors.white,
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: const Color(0xFFF4F4F4), // Tesla Light Ash
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(4), // Tesla 4px radius
+              borderSide: const BorderSide(color: Color(0xFFD0D1D2)), // Pale Silver
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(4),
+              borderSide: const BorderSide(color: Color(0xFFD0D1D2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(4),
+              borderSide: const BorderSide(color: Color(0xFF3E6AE1), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(4),
+              borderSide: const BorderSide(color: Color(0xFFEE0000)),
+            ),
+            hintStyle: const TextStyle(
+              color: Color(0xFF8E8E8E), // Silver Fog
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          textTheme: const TextTheme(
+            displayLarge: TextStyle(
+              fontSize: 40,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF171A20),
+            ),
+            headlineSmall: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF171A20),
+            ),
+            bodyLarge: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF393C41), // Graphite
+              height: 1.43,
+            ),
+            bodyMedium: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF5C5E62), // Pewter
+            ),
+            labelMedium: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF171A20),
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3E6AE1), // Tesla Blue
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4), // 4px Tesla style
+              ),
+              elevation: 0,
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF171A20),
+              side: const BorderSide(color: Color(0xFFD0D1D2)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF5C5E62), // Pewter
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+          dividerColor: const Color(0xFFEEEEEE), // Cloud Gray
+          cardTheme: CardThemeData(
+            color: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFFEEEEEE), width: 1),
+            ),
           ),
         ),
         home: FlavorBanner(child: MainTabsScreen(api: _api)),

@@ -1290,10 +1290,7 @@ class ApiClient {
       () => _http.post(
         _uri('/api/feedback'),
         headers: _jsonHeaders(),
-        body: jsonEncode({
-          'idea': idea,
-          'email': email,
-        }),
+        body: jsonEncode({'idea': idea, 'email': email}),
       ),
     );
 

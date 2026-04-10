@@ -84,8 +84,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) return 'Kodeord er påkrævet';
     if (value.length < 8) return 'Kodeord skal være mindst 8 tegn';
-    if (!value.contains(RegExp(r'[A-Z]'))) return 'Kodeord skal indeholde stort bogstav';
-    if (!value.contains(RegExp(r'[a-z]'))) return 'Kodeord skal indeholde lille bogstav';
+    if (!value.contains(RegExp(r'[A-Z]')))
+      return 'Kodeord skal indeholde stort bogstav';
+    if (!value.contains(RegExp(r'[a-z]')))
+      return 'Kodeord skal indeholde lille bogstav';
     if (!value.contains(RegExp(r'\d'))) return 'Kodeord skal indeholde tal';
     return null;
   }
@@ -120,8 +122,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   onPressed: () {
                     setState(
-                      () =>
-                          _showCurrentPassword = !_showCurrentPassword,
+                      () => _showCurrentPassword = !_showCurrentPassword,
                     );
                   },
                 ),
@@ -143,9 +144,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _showNewPassword
-                        ? Icons.visibility_off
-                        : Icons.visibility,
+                    _showNewPassword ? Icons.visibility_off : Icons.visibility,
                   ),
                   onPressed: () {
                     setState(() => _showNewPassword = !_showNewPassword);
@@ -170,8 +169,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   onPressed: () {
                     setState(
-                      () =>
-                          _showConfirmPassword = !_showConfirmPassword,
+                      () => _showConfirmPassword = !_showConfirmPassword,
                     );
                   },
                 ),
@@ -196,9 +194,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 ),
                 child: Text(
                   _error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
               const SizedBox(height: 16),
@@ -219,9 +215,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             ],
             FilledButton(
               onPressed: _isSubmitting ? null : _submit,
-              child: Text(
-                _isSubmitting ? 'Skifter...' : 'Skift kodeord',
-              ),
+              child: Text(_isSubmitting ? 'Skifter...' : 'Skift kodeord'),
             ),
           ],
         ),

@@ -91,10 +91,7 @@ class _SendIdeaScreenState extends State<SendIdeaScreen> {
             const SizedBox(height: 8),
             const Text(
               'Send os din feedback',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -147,9 +144,7 @@ class _SendIdeaScreenState extends State<SendIdeaScreen> {
                 ),
                 child: Text(
                   _error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
               const SizedBox(height: 16),
