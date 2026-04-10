@@ -51,6 +51,11 @@ class _SellCarScreenState extends State<SellCarScreen> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _cvrCtrl = TextEditingController();
+  final _streetAddressCtrl = TextEditingController();
+  final _streetNumberCtrl = TextEditingController();
+  final _floorCtrl = TextEditingController();
+  final _websiteCtrl = TextEditingController();
 
   bool _submitting = false;
   String? _error;
@@ -78,6 +83,11 @@ class _SellCarScreenState extends State<SellCarScreen> {
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _phoneCtrl.dispose();
+    _cvrCtrl.dispose();
+    _streetAddressCtrl.dispose();
+    _streetNumberCtrl.dispose();
+    _floorCtrl.dispose();
+    _websiteCtrl.dispose();
     super.dispose();
   }
 
@@ -615,6 +625,17 @@ class _SellCarScreenState extends State<SellCarScreen> {
         title: _titleCtrl.text,
         description: _descCtrl.text,
         sellerPhone: _phoneCtrl.text,
+        cvrNumber: _cvrCtrl.text.trim().isEmpty ? null : _cvrCtrl.text.trim(),
+        streetAddress: _streetAddressCtrl.text.trim().isEmpty
+            ? null
+            : _streetAddressCtrl.text.trim(),
+        streetNumber: _streetNumberCtrl.text.trim().isEmpty
+            ? null
+            : _streetNumberCtrl.text.trim(),
+        floor: _floorCtrl.text.trim().isEmpty ? null : _floorCtrl.text.trim(),
+        website: _websiteCtrl.text.trim().isEmpty
+            ? null
+            : _websiteCtrl.text.trim(),
         images: imageCreates.isEmpty ? null : imageCreates,
       );
 
@@ -976,6 +997,81 @@ class _SellCarScreenState extends State<SellCarScreen> {
                       return 'Ugyldigt telefonnummer';
                     }
                     return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                // Seller Info Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Forhandlerinfo (frivilligt)',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                TextFormField(
+                  controller: _cvrCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'CVR-nr.',
+                    hintText: 'f.eks. 12345678',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    final digits = v.replaceAll(RegExp(r'[^\d]'), '');
+                    if (digits.length != 8) {
+                      return 'CVR skal være 8 cifre';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _streetAddressCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Gadeadresse',
+                    hintText: 'f.eks. Strandvejen',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _streetNumberCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Husnr.',
+                          hintText: 'f.eks. 34',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _floorCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Etage/enhed',
+                          hintText: 'f.eks. st. th.',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _websiteCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Webadresse',
+                    hintText: 'f.eks. https://example.dk',
+                  ),
+                  keyboardType: TextInputType.url,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    try {
+                      Uri.parse(v.trim());
+                      return null;
+                    } catch (e) {
+                      return 'Ugyldig webadresse';
+                    }
                   },
                 ),
                 const SizedBox(height: 12),

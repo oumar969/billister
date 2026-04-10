@@ -9,6 +9,13 @@ public sealed class CarListing
     public string? SellerPhone { get; set; }
     public string? SellerType { get; set; } // "private" or "dealer"
 
+    // Seller info (for dealers)
+    public string? CvrNumber { get; set; } // CVR nummer for registrerede virksomheder
+    public string? StreetAddress { get; set; } // Vejnavn (e.g. "Strandvejen")
+    public string? StreetNumber { get; set; } // Husnummer (e.g. "34")
+    public string? Floor { get; set; } // Etage/Enhedsnummer (e.g. "st. th.")
+    public string? Website { get; set; } // Sælger hjemmeside
+
     // Sale type
     public string? SaleType { get; set; } // "commission" or "formidling" (intermediary/trade-in sale)
     public bool IsLeasing { get; set; } // false = for sale, true = leasing

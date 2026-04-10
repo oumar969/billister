@@ -6,6 +6,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
 from datetime import datetime
+import os
+from functools import wraps
 
 try:
     from dmr import DMR
@@ -16,12 +18,53 @@ except ImportError:
 app = Flask(__name__)
 CORS(app)
 
+# Configuration
+API_KEY = os.getenv("DMR_API_KEY")  # Set via environment variable or .env file
+REQUIRE_AUTH = os.getenv("DMR_REQUIRE_AUTH", "true").lower() == "true"
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def require_api_key(f):
+    """Decorator to require API key in X-API-Key header"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Skip auth check in development if not configured
+        if not REQUIRE_AUTH:
+            return f(*args, **kwargs)
+        
+        # Check if API key is configured
+        if not API_KEY:
+            logger.error("DMR_API_KEY not configured. Set environment variable or disable DMR_REQUIRE_AUTH")
+            return jsonify({"error": "Service not properly configured"}), 500
+        
+        # Get API key from request header
+        api_key = request.headers.get("X-API-Key")
+        
+        # Validate API key
+        if not api_key:
+            logger.warning(f"Missing API key for {request.remote_addr} - {request.path}")
+            return jsonify({
+                "error": "Unauthorized",
+                "message": "X-API-Key header required"
+            }), 401
+        
+        if api_key != API_KEY:
+            logger.warning(f"Invalid API key from {request.remote_addr} - {request.path}")
+            return jsonify({
+                "error": "Unauthorized",
+                "message": "Invalid API key"
+            }), 401
+        
+        # Valid API key - proceed
+        return f(*args, **kwargs)
+    
+    return decorated_function
 
 
 @app.route('/health', methods=['GET'])
@@ -33,6 +76,7 @@ def health():
 
 
 @app.route('/api/vehicles/plate/<plate>', methods=['GET'])
+@require_api_key
 def lookup_plate(plate):
     """
     GET /api/vehicles/plate/{plate}
@@ -91,6 +135,7 @@ def lookup_plate(plate):
 
 
 @app.route('/api/vehicles/validate/<plate>', methods=['GET'])
+@require_api_key
 def validate_plate(plate):
     """
     GET /api/vehicles/validate/{plate}

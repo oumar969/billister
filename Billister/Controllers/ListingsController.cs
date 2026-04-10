@@ -140,6 +140,11 @@ public sealed class ListingsController : ControllerBase
             listing.Id,
             listing.SellerUserId,
             listing.SellerPhone,
+            listing.CvrNumber,
+            listing.StreetAddress,
+            listing.StreetNumber,
+            listing.Floor,
+            listing.Website,
             listing.Make,
             listing.Model,
             listing.Variant,
@@ -188,6 +193,11 @@ public sealed class ListingsController : ControllerBase
         {
             SellerUserId = userId,
             SellerPhone = req.SellerPhone,
+            CvrNumber = req.CvrNumber,
+            StreetAddress = req.StreetAddress,
+            StreetNumber = req.StreetNumber,
+            Floor = req.Floor,
+            Website = req.Website,
             Make = req.Make,
             Model = req.Model,
             Variant = req.Variant,
@@ -302,6 +312,12 @@ public sealed class ListingsController : ControllerBase
         if (req.Title is not null) listing.Title = req.Title;
         if (req.Description is not null) listing.Description = req.Description;
         if (req.IsSold is not null) listing.IsSold = req.IsSold.Value;
+        if (req.SellerPhone is not null) listing.SellerPhone = req.SellerPhone;
+        if (req.CvrNumber is not null) listing.CvrNumber = req.CvrNumber;
+        if (req.StreetAddress is not null) listing.StreetAddress = req.StreetAddress;
+        if (req.StreetNumber is not null) listing.StreetNumber = req.StreetNumber;
+        if (req.Floor is not null) listing.Floor = req.Floor;
+        if (req.Website is not null) listing.Website = req.Website;
 
         if (req.Features is not null)
         {

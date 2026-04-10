@@ -146,6 +146,11 @@ using (var scope = app.Services.CreateScope())
 
             var hasSellerPhone = false;
             var hasIsSold = false;
+            var hasCvrNumber = false;
+            var hasStreetAddress = false;
+            var hasStreetNumber = false;
+            var hasFloor = false;
+            var hasWebsite = false;
             var nameOrdinal = -1;
             while (await reader.ReadAsync())
             {
@@ -164,6 +169,36 @@ using (var scope = app.Services.CreateScope())
                 if (string.Equals(name, "IsSold", StringComparison.OrdinalIgnoreCase))
                 {
                     hasIsSold = true;
+                    continue;
+                }
+
+                if (string.Equals(name, "CvrNumber", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasCvrNumber = true;
+                    continue;
+                }
+
+                if (string.Equals(name, "StreetAddress", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasStreetAddress = true;
+                    continue;
+                }
+
+                if (string.Equals(name, "StreetNumber", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasStreetNumber = true;
+                    continue;
+                }
+
+                if (string.Equals(name, "Floor", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasFloor = true;
+                    continue;
+                }
+
+                if (string.Equals(name, "Website", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasWebsite = true;
                 }
             }
 
@@ -181,6 +216,46 @@ using (var scope = app.Services.CreateScope())
                 alter.CommandText = "ALTER TABLE CarListings ADD COLUMN IsSold INTEGER NOT NULL DEFAULT 0;";
                 await alter.ExecuteNonQueryAsync();
                 app.Logger.LogInformation("Dev DB repair: added missing column CarListings.IsSold");
+            }
+
+            if (!hasCvrNumber)
+            {
+                await using var alter = conn.CreateCommand();
+                alter.CommandText = "ALTER TABLE CarListings ADD COLUMN CvrNumber TEXT NULL;";
+                await alter.ExecuteNonQueryAsync();
+                app.Logger.LogInformation("Dev DB repair: added missing column CarListings.CvrNumber");
+            }
+
+            if (!hasStreetAddress)
+            {
+                await using var alter = conn.CreateCommand();
+                alter.CommandText = "ALTER TABLE CarListings ADD COLUMN StreetAddress TEXT NULL;";
+                await alter.ExecuteNonQueryAsync();
+                app.Logger.LogInformation("Dev DB repair: added missing column CarListings.StreetAddress");
+            }
+
+            if (!hasStreetNumber)
+            {
+                await using var alter = conn.CreateCommand();
+                alter.CommandText = "ALTER TABLE CarListings ADD COLUMN StreetNumber TEXT NULL;";
+                await alter.ExecuteNonQueryAsync();
+                app.Logger.LogInformation("Dev DB repair: added missing column CarListings.StreetNumber");
+            }
+
+            if (!hasFloor)
+            {
+                await using var alter = conn.CreateCommand();
+                alter.CommandText = "ALTER TABLE CarListings ADD COLUMN Floor TEXT NULL;";
+                await alter.ExecuteNonQueryAsync();
+                app.Logger.LogInformation("Dev DB repair: added missing column CarListings.Floor");
+            }
+
+            if (!hasWebsite)
+            {
+                await using var alter = conn.CreateCommand();
+                alter.CommandText = "ALTER TABLE CarListings ADD COLUMN Website TEXT NULL;";
+                await alter.ExecuteNonQueryAsync();
+                app.Logger.LogInformation("Dev DB repair: added missing column CarListings.Website");
             }
         }
 

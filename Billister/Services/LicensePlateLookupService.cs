@@ -5,12 +5,13 @@ using Billister.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace Billister.Services;
 
 /// <summary>
 /// Service for looking up Danish vehicle information from license plates
-/// Calls a Python Flask server (http://localhost:8000) that scrapes motorregister.skat.dk
+/// Calls a Python Flask server (http://localhost:8000 or 5001) that scrapes motorregister.skat.dk
 /// Caches results in the database for 30 days
 /// </summary>
 public class LicensePlateLookupService
@@ -18,6 +19,7 @@ public class LicensePlateLookupService
     private readonly HttpClient _httpClient;
     private readonly BillisterDbContext _dbContext;
     private readonly ILogger<LicensePlateLookupService> _logger;
+    private readonly string? _dmrApiKey;
 
     private const string FLASK_SERVER_URL = "http://localhost:8000/api/vehicles/plate";
     private const int CACHE_DURATION_DAYS = 30;
@@ -25,11 +27,13 @@ public class LicensePlateLookupService
     public LicensePlateLookupService(
         HttpClient httpClient,
         BillisterDbContext dbContext,
-        ILogger<LicensePlateLookupService> logger)
+        ILogger<LicensePlateLookupService> logger,
+        IConfiguration configuration)
     {
         _httpClient = httpClient;
         _dbContext = dbContext;
         _logger = logger;
+        _dmrApiKey = configuration["DmrService:ApiKey"];
     }
 
     /// <summary>
@@ -107,6 +111,15 @@ public class LicensePlateLookupService
             _logger.LogInformation($"🔍 Calling Flask server for plate: {licensePlate} at {FLASK_SERVER_URL}");
 
             var requestUri = $"{FLASK_SERVER_URL}/{Uri.EscapeDataString(cleanPlate)}";
+
+            // Add API key header if configured
+            if (!string.IsNullOrEmpty(_dmrApiKey))
+            {
+                _httpClient.DefaultRequestHeaders.Remove("X-API-Key");
+                _httpClient.DefaultRequestHeaders.Add("X-API-Key", _dmrApiKey);
+                _logger.LogInformation($"🔑 Using API key for DMR service");
+            }
+
             var response = await _httpClient.GetAsync(requestUri);
 
             if (!response.IsSuccessStatusCode)
@@ -114,6 +127,12 @@ public class LicensePlateLookupService
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
                     _logger.LogWarning($"❌ Vehicle not found in flask server for plate: {licensePlate}");
+                    return null;
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    _logger.LogError($"❌ Unauthorized: API key missing or invalid for DMR service");
                     return null;
                 }
 

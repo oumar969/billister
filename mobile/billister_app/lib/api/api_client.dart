@@ -928,6 +928,11 @@ class ApiClient {
     String? title,
     String? description,
     String? sellerPhone,
+    String? cvrNumber,
+    String? streetAddress,
+    String? streetNumber,
+    String? floor,
+    String? website,
     List<ListingImageCreate>? images,
   }) async {
     final res = await _send(
@@ -952,6 +957,22 @@ class ApiClient {
           'sellerPhone': (sellerPhone == null || sellerPhone.trim().isEmpty)
               ? null
               : sellerPhone.trim().replaceAll(RegExp(r'[^\d+\-\s()]'), ''),
+          'cvrNumber': (cvrNumber == null || cvrNumber.trim().isEmpty)
+              ? null
+              : cvrNumber.trim(),
+          'streetAddress':
+              (streetAddress == null || streetAddress.trim().isEmpty)
+              ? null
+              : streetAddress.trim(),
+          'streetNumber': (streetNumber == null || streetNumber.trim().isEmpty)
+              ? null
+              : streetNumber.trim(),
+          'floor': (floor == null || floor.trim().isEmpty)
+              ? null
+              : floor.trim(),
+          'website': (website == null || website.trim().isEmpty)
+              ? null
+              : website.trim(),
           'images': images?.map((img) => img.toJson()).toList(),
         }),
       ),

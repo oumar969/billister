@@ -249,6 +249,11 @@ class ListingDetails {
   final String? title;
   final String? description;
   final String? sellerPhone;
+  final String? cvrNumber;
+  final String? streetAddress;
+  final String? streetNumber;
+  final String? floor;
+  final String? website;
   final List<String> features;
   final Map<String, dynamic> extraAttributes;
   final int viewCount;
@@ -285,6 +290,11 @@ class ListingDetails {
     required this.title,
     required this.description,
     required this.sellerPhone,
+    required this.cvrNumber,
+    required this.streetAddress,
+    required this.streetNumber,
+    required this.floor,
+    required this.website,
     required this.features,
     required this.extraAttributes,
     required this.viewCount,
@@ -327,6 +337,11 @@ class ListingDetails {
       title: json['title'] as String?,
       description: json['description'] as String?,
       sellerPhone: json['sellerPhone'] as String?,
+      cvrNumber: json['cvrNumber'] as String?,
+      streetAddress: json['streetAddress'] as String?,
+      streetNumber: json['streetNumber'] as String?,
+      floor: json['floor'] as String?,
+      website: json['website'] as String?,
       features:
           featuresJson?.map((e) => e.toString()).toList() ?? const <String>[],
       extraAttributes: extraJson ?? const <String, dynamic>{},
