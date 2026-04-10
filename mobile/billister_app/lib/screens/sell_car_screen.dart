@@ -184,6 +184,193 @@ class _SellCarScreenState extends State<SellCarScreen> {
     }
   }
 
+  void _showImportLinkDialog() {
+    final linkController = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Indsæt link fra bilhjemmeside'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Indsæt link fra en bilhandlers hjemmeside (f.eks. DBA, Bilbasen, etc.). '
+              'Vi vil forsøge at hente bilens oplysninger automatisk.',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: linkController,
+              decoration: const InputDecoration(
+                hintText: 'https://example.com/bil/...',
+                border: OutlineInputBorder(),
+                labelText: 'Link',
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuller'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final url = linkController.text.trim();
+              Navigator.pop(context);
+              if (url.isNotEmpty) {
+                await _importFromLink(url);
+              }
+            },
+            child: const Text('Importér'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importFromLink(String url) async {
+    if (!mounted) return;
+
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Henter biloplysninger fra backend...')),
+      );
+
+      // Call backend to parse the URL (avoids CORS issues)
+      final parseUrl = Uri.parse(
+        '${widget.api.baseUrl}/api/urlparser/parse-listing',
+      );
+      final response = await http
+          .post(
+            parseUrl,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'url': url}),
+          )
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw Exception('Timeout ved hentning af siden'),
+          );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        await _applyPrefillData(json);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Biloplysninger indlæst! Gennemse og opdater efter behov.',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final error = json['error'] ?? 'Ukendt fejl';
+        throw Exception(error);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fejl: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _applyPrefillData(Map<String, dynamic> data) async {
+    // Pre-fill all fields with imported data
+    if (data.containsKey('licensePlate')) {
+      _licensePlateCtrl.text = data['licensePlate'] ?? '';
+    }
+    if (data.containsKey('price')) {
+      _priceCtrl.text = data['price']?.toString() ?? '';
+    }
+    if (data.containsKey('year')) {
+      _yearCtrl.text = data['year']?.toString() ?? '';
+    }
+    if (data.containsKey('mileage')) {
+      _mileageCtrl.text = data['mileage']?.toString() ?? '';
+    }
+    if (data.containsKey('city')) {
+      _cityCtrl.text = data['city'] ?? '';
+    }
+    if (data.containsKey('title')) {
+      _titleCtrl.text = data['title'] ?? '';
+    }
+    if (data.containsKey('description')) {
+      _descCtrl.text = data['description'] ?? '';
+    }
+
+    // Try to match make (brand) from catalog
+    if (data.containsKey('make')) {
+      final makeName = data['make'] as String?;
+      if (makeName != null && _makes.isNotEmpty) {
+        VehicleMake? matchedMake;
+        try {
+          matchedMake = _makes.firstWhere(
+            (m) =>
+                m.name.toLowerCase().contains(makeName.toLowerCase()) ||
+                makeName.toLowerCase().contains(m.name.toLowerCase()),
+          );
+        } catch (e) {
+          // No match found
+        }
+
+        if (matchedMake != null) {
+          final mId = matchedMake.id;
+          setState(() => _makeId = mId);
+          await _loadModelsForMake(mId);
+        }
+      }
+    }
+
+    // Try to match model after make is selected
+    if (data.containsKey('model') && _makeId != null) {
+      final modelName = data['model'] as String?;
+      if (modelName != null && _models.isNotEmpty) {
+        VehicleModel? matchedModel;
+        try {
+          matchedModel = _models.firstWhere(
+            (m) =>
+                m.name.toLowerCase().contains(modelName.toLowerCase()) ||
+                modelName.toLowerCase().contains(m.name.toLowerCase()),
+          );
+        } catch (e) {
+          // No match found
+        }
+
+        if (matchedModel != null) {
+          final mId = matchedModel.id;
+          setState(() => _modelId = mId);
+        }
+      }
+    }
+
+    if (data.containsKey('fuelType')) {
+      final fuel = data['fuelType'] as String?;
+      if (fuel != null && _fuelTypeOptions.contains(fuel)) {
+        _fuelType = fuel;
+      }
+    }
+    if (data.containsKey('transmission')) {
+      final trans = data['transmission'] as String?;
+      if (trans != null && _transmissionOptions.contains(trans)) {
+        _transmission = trans;
+      }
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _showPlateSearchDialog() {
     showDialog<void>(
       context: context,
@@ -453,7 +640,16 @@ class _SellCarScreenState extends State<SellCarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sælg din bil')),
+      appBar: AppBar(
+        title: const Text('Sælg din bil'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.link),
+            tooltip: 'Indsæt link fra bilhjemmeside',
+            onPressed: _showImportLinkDialog,
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
@@ -711,56 +907,44 @@ class _SellCarScreenState extends State<SellCarScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                InputDecorator(
+                DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Brændstof'),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: _fuelType,
-                      items: _fuelTypeOptions
-                          .map(
-                            (x) => DropdownMenuItem<String>(
-                              value: x,
-                              child: Text(x),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: _submitting
-                          ? null
-                          : (v) {
-                              if (v == null) return;
-                              setState(() {
-                                _fuelType = v;
-                              });
-                            },
-                    ),
-                  ),
+                  isExpanded: true,
+                  value: _fuelType,
+                  items: _fuelTypeOptions
+                      .map(
+                        (x) =>
+                            DropdownMenuItem<String>(value: x, child: Text(x)),
+                      )
+                      .toList(growable: false),
+                  onChanged: _submitting
+                      ? null
+                      : (v) {
+                          if (v == null) return;
+                          setState(() {
+                            _fuelType = v;
+                          });
+                        },
                 ),
                 const SizedBox(height: 8),
-                InputDecorator(
+                DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Gearkasse'),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: _transmission,
-                      items: _transmissionOptions
-                          .map(
-                            (x) => DropdownMenuItem<String>(
-                              value: x,
-                              child: Text(x),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: _submitting
-                          ? null
-                          : (v) {
-                              if (v == null) return;
-                              setState(() {
-                                _transmission = v;
-                              });
-                            },
-                    ),
-                  ),
+                  isExpanded: true,
+                  value: _transmission,
+                  items: _transmissionOptions
+                      .map(
+                        (x) =>
+                            DropdownMenuItem<String>(value: x, child: Text(x)),
+                      )
+                      .toList(growable: false),
+                  onChanged: _submitting
+                      ? null
+                      : (v) {
+                          if (v == null) return;
+                          setState(() {
+                            _transmission = v;
+                          });
+                        },
                 ),
                 const SizedBox(height: 8),
                 TextFormField(

@@ -13,7 +13,7 @@ import 'screens/main_tabs_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  AppConfig.setInstance(AppConfig.prod);
+  AppConfig.setInstance(AppConfig.dev);
   runApp(BillisterApp(sharedPreferences: prefs));
 }
 

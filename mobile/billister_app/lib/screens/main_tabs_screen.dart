@@ -70,10 +70,7 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: cloudGray,
-          width: 1,
-        ),
+        border: Border.all(color: cloudGray, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -103,13 +100,12 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
                 decoration: BoxDecoration(
-                  color: isActive ? teslaBlue.withOpacity(0.08) : Colors.transparent,
+                  color: isActive
+                      ? teslaBlue.withOpacity(0.08)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(4),
                   border: isActive
-                      ? Border.all(
-                          color: teslaBlue.withOpacity(0.3),
-                          width: 1,
-                        )
+                      ? Border.all(color: teslaBlue.withOpacity(0.3), width: 1)
                       : null,
                 ),
                 padding: const EdgeInsets.symmetric(
@@ -129,7 +125,9 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
                       items[index]['label'] as String,
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+                        fontWeight: isActive
+                            ? FontWeight.w500
+                            : FontWeight.w400,
                         color: isActive ? carbonDark : silverFog,
                         letterSpacing: 0.2,
                       ),

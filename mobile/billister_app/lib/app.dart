@@ -101,10 +101,15 @@ class _BillisterAppState extends State<BillisterApp> {
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
             fillColor: const Color(0xFFF4F4F4), // Tesla Light Ash
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(4), // Tesla 4px radius
-              borderSide: const BorderSide(color: Color(0xFFD0D1D2)), // Pale Silver
+              borderSide: const BorderSide(
+                color: Color(0xFFD0D1D2),
+              ), // Pale Silver
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(4),
